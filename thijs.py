@@ -1,7 +1,9 @@
 import numpy as np
 import open3d as o3d
 
-mesh_path = "./data/D00921.obj"
+# mesh_path = "./data/D00921.obj"
+mesh_path = "./data/Airplane_61.off"
+
 vis_option = "smoothshade"  # Either {smoothshade, wireframe_on_shaded, wireframe, world_axes, colour_background}
 width = 1280
 height = 720

@@ -11,6 +11,15 @@ Please install [Python 3.8.10](https://www.python.org/downloads/release/python-3
 - Install required packages: `pip install -r requirements.txt`
 - Check if installation was succesfull: `python -c "import open3d as o3d; print(o3d.__version__)"`
 
+## Testing data
+
+Multiple files for testing the 3D mesh environment are available:
+
+- `./data/D00921.obj`
+  - An `.obj` file provided by the TAs, coming from the ShapeDatabase and belonging to the class `Apartment`
+- `./data/Airplane_61.off`
+  - An `.off` file, originally belonging to the Labeled PSB dataset class `Airplane`
+
 ## Resources
 
 - [The assignment](https://webspace.science.uu.nl/~telea001/MR/Assignment)
