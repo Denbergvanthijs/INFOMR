@@ -63,5 +63,5 @@ elif vis_option == "colour_background":
 vertices = np.asarray(mesh.vertices)
 triangles = np.asarray(mesh.triangles)
 
-print("Vertices: ", vertices.shape)
-print("Triangles: ", triangles.shape)
+print(f"Vertices: {vertices.shape}, {vertices.dtype=}, {vertices.min()=:.3f}, {vertices.max()=:.3f}")
+print(f"Triangles: {triangles.shape}, {triangles.dtype=}, {triangles.min()=}, {triangles.max()=}")
