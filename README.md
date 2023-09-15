@@ -16,9 +16,11 @@ Please install [Python 3.8.10](https://www.python.org/downloads/release/python-3
 Multiple files for testing the 3D mesh environment are available:
 
 - `./data/D00921.obj`
-  - An `.obj` file provided by the TAs, coming from the ShapeDatabase and belonging to the class `Apartment`
+  - `.obj` file provided by the TAs, coming from the ShapeDatabase and belonging to the class `Apartment`
 - `./data/Airplane_61.off`
-  - An `.off` file, originally belonging to the Labeled PSB dataset class `Airplane`
+  - `.off` file originally belonging to the Labeled PSB dataset class `Airplane`
+- `./data/bearded_guy.ply`
+  - `.ply` file from [artec3d.com](https://www.artec3d.com/3d-models/bearded-guy-hd) to test `.ply` files while the website for the Princeton Shape Benchmark dataset is down
 
 ## Resources
 
