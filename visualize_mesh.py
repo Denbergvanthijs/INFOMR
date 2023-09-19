@@ -11,11 +11,12 @@ def main():
     mesh.compute_vertex_normals()
 
     # Visualize the mesh
-    if sys.argv[2] == "shade":
-        o3d.visualization.draw_geometries([mesh], width=1280, height=720)
-    elif sys.argv[2] == "wired":
-        o3d.visualization.draw_geometries([mesh], width=1280, height=720, mesh_show_wireframe=True)
-    else:
+    try:
+        if sys.argv[2] == "shade":
+            o3d.visualization.draw_geometries([mesh], width=1280, height=720)
+        elif sys.argv[2] == "wired":
+            o3d.visualization.draw_geometries([mesh], width=1280, height=720, mesh_show_wireframe=True)
+    except IndexError:
         print("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
     
    
