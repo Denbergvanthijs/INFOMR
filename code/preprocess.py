@@ -46,7 +46,7 @@ def read_meshes():
                 bbox_min = bbox.min()
                 bbox_max = bbox.max()
 
-                mesh_info.append([category, vertices, faces, 
+                mesh_info.append([filename, category, vertices, faces, 
                                   bbox_min[0], bbox_min[1], bbox_min[2], 
                                   bbox_max[0], bbox_max[1], bbox_max[2]])
                 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         csv_file_path = "data/mesh_info.csv"
         with open(csv_file_path, 'w', newline='') as csvfile:
             csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(['Class', 'Vertices', 'Faces', 
+            csv_writer.writerow(['Filename', 'Class', 'Vertices', 'Faces', 
                                 'BB Min x', 'BB Min y', 'BB Min z', 
                                 'BB Max x', 'BB Max y', 'BB Max z'])
             for row in mesh_info:
