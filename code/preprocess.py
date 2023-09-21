@@ -74,11 +74,19 @@ if __name__ == "__main__":
     mesh_info = pd.read_csv("data/mesh_info.csv")
 
     # Load vertices and faces
-    data = []
+    vertices = []
+    faces = []
     for _, m in mesh_info.iterrows():
-        data.append([m['Vertices'], m['Faces']])
+        vertices.append(m['Vertices'])
+        faces.append(m['Faces'])
 
-    data = np.array(data)
+    # Convert to numpy array 
+    vertices = np.array(vertices)
+    faces = np.array(faces)
+
+    # Print average shape
+    # print(np.mean(vertices))     5609.783326621023 
+    # print(np.mean(faces))        10691.12686266613
     
     
         
