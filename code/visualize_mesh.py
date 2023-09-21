@@ -45,11 +45,13 @@ def visualize(mesh_path: str, visualization_method: str, width: int = 1280, heig
     mesh = o3d.io.read_triangle_mesh(mesh_path)
     mesh.compute_vertex_normals()
 
+    window_name = f"RorschachViz - Visualized mesh: {mesh_path}"
+
     # Visualize the mesh
     if visualization_method == "shade":
-        o3d.visualization.draw_geometries([mesh], width=width, height=height)
+        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name)
     elif visualization_method == "wired":
-        o3d.visualization.draw_geometries([mesh], width=width, height=height, mesh_show_wireframe=True)
+        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name, mesh_show_wireframe=True)
     else:
         raise IndexError("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
 
