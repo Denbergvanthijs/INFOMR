@@ -1,39 +1,66 @@
+import argparse
+
 import open3d as o3d
-import sys
 import pymeshlab
 
+parser = argparse.ArgumentParser(description="Visualize a given mesh.")
+parser.add_argument("--mesh_path", type=str, dest="mesh_path",
+                    default="./data/LabeledDB_new/Ant/81.off", help="Path to the mesh file.")
+parser.add_argument("--visualization_method", type=str, dest="visualization_method",
+                    default="shade", help="Visualization method. Either 'shade' or 'wired'.", choices=["shade", "wired"])
 
-# Function for retrieving number of vertices and faces of a given mesh
-def show_info(mesh_path):
+
+def show_info(mesh_path: str) -> (int, int):
+    """Function for retrieving number of vertices and faces of a given mesh.
+
+    :param mesh_path: Path to the mesh file
+    :type mesh_path: str
+
+    :return: Number of vertices and faces of the given mesh
+    :rtype: (int, int)
+    """
     # Obtain mesh information
-    ms = pymeshlab.MeshSet()
-    ms.load_new_mesh(mesh_path)
-    m = ms.current_mesh()
+    meshset = pymeshlab.MeshSet()
+    meshset.load_new_mesh(mesh_path)
+    mesh_current = meshset.current_mesh()
 
-    vertices = m.vertex_number()
-    faces = m.face_number()
-    print(vertices)
-    print(faces)
+    return mesh_current.vertex_number(), mesh_current.face_number()
 
 
 # Function for visualizing a given mesh
-def visualize(mesh_path):
-    # Load the mesh with open3d 
+def visualize(mesh_path: str, visualization_method: str, width: int = 1280, height: int = 720) -> None:
+    """Function for visualizing a given mesh.
+
+    :param mesh_path: Path to the mesh file
+    :type mesh_path: str
+    :param visualization_method: Visualization method. Either 'shade' or 'wired'.
+    :type visualization_method: str
+
+    :raises IndexError: If no acceptable visualization method was given
+
+    :return: None
+    :rtype: None
+    """
+    # Load the mesh with open3d
     mesh = o3d.io.read_triangle_mesh(mesh_path)
     mesh.compute_vertex_normals()
-    
+
     # Visualize the mesh
-    try:
-        if sys.argv[2] == "shade":
-            o3d.visualization.draw_geometries([mesh], width=1280, height=720)
-        elif sys.argv[2] == "wired":
-            o3d.visualization.draw_geometries([mesh], width=1280, height=720, mesh_show_wireframe=True)
-    except IndexError:
-        print("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
-    
-   
+    if visualization_method == "shade":
+        o3d.visualization.draw_geometries([mesh], width=width, height=height)
+    elif visualization_method == "wired":
+        o3d.visualization.draw_geometries([mesh], width=width, height=height, mesh_show_wireframe=True)
+    else:
+        raise IndexError("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
+
+
 if __name__ == "__main__":
     # Obtain filename from command line input
-    mesh_path = sys.argv[1]
-    show_info(mesh_path)
-    visualize(mesh_path)
+    # Example command: python visualize_mesh.py --mesh_path ./data/LabeledDB_new/Ant/81.off --visualization_method shade
+    args = parser.parse_args()
+
+    vertices, faces = show_info(args.mesh_path)
+    print(f"Number of vertices: {vertices}")
+    print(f"Number of faces: {faces}")
+
+    visualize(args.mesh_path, args.visualization_method)
