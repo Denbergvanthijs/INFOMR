@@ -4,7 +4,9 @@ import pandas as pd
 import csv
 import pymeshlab
 
-save_mesh_info = 0
+# Flag to read/write info from csv 
+read_mesh_info = False
+save_mesh_info = False
 
 def read_meshes():
     ms = pymeshlab.MeshSet()
@@ -31,6 +33,12 @@ def read_meshes():
                 ms.load_new_mesh(mesh_path)
                 m = ms.current_mesh()
 
+                if mesh_path == "data\AircraftBuoyant\m1337.obj":
+                    ms.apply_filter("generate_resampled_uniform_mesh",mergeclosevert=True)
+                    # ms.apply_filter("remove_isolated_pieces_wrt_diameter",mincomponentdiag=pymeshlab.Percentage(5))
+                    ms.save_current_mesh("data\AircraftBuoyant\\resampled_m1337.obj")
+                    # ms.save_current_mesh(category_folder + "\\resampled_" + filename)
+
                 # Obtain mesh information
                 vertices = m.vertex_number()
                 faces = m.face_number()
@@ -56,8 +64,27 @@ def avg_shape(mesh_info):
 
 
 if __name__ == "__main__":
+    # Load mesh info from existing CSV file
+    if read_mesh_info:
+        mesh_info = pd.read_csv("data/mesh_info.csv")
+
+        # Load vertices and faces
+        vertices = []
+        faces = []
+        for _, m in mesh_info.iterrows():
+            vertices.append(m['Vertices'])
+            faces.append(m['Faces'])
+
+        # Convert to numpy array 
+        vertices = np.array(vertices)
+        faces = np.array(faces)
+
+        # Print average shape
+        # print(np.mean(vertices))     5609.783326621023 
+        # print(np.mean(faces))        10691.12686266613
+    
     # Read mesh info from data folder and save it to a CSV file
-    if save_mesh_info:
+    elif save_mesh_info:
         mesh_info = read_meshes()
 
         # Save mesh info in a CSV file
@@ -70,23 +97,9 @@ if __name__ == "__main__":
             for row in mesh_info:
                 csv_writer.writerow(row)
 
-    # Load mesh info from existing CSV file
-    mesh_info = pd.read_csv("data/mesh_info.csv")
+    else:
+        mesh_info = read_meshes()
 
-    # Load vertices and faces
-    vertices = []
-    faces = []
-    for _, m in mesh_info.iterrows():
-        vertices.append(m['Vertices'])
-        faces.append(m['Faces'])
-
-    # Convert to numpy array 
-    vertices = np.array(vertices)
-    faces = np.array(faces)
-
-    # Print average shape
-    # print(np.mean(vertices))     5609.783326621023 
-    # print(np.mean(faces))        10691.12686266613
     
     
         
