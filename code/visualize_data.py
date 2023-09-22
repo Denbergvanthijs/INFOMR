@@ -49,7 +49,7 @@ def boxplot(mesh_info):
 
 
 # Function to create a 3D histogram of shapes in dataset
-def histogram(mesh_info):
+def histogram3D(mesh_info):
     # Read number of vertices and faces from mesh info
     data = []
     for _, m in mesh_info.iterrows():
@@ -85,7 +85,34 @@ def histogram(mesh_info):
     plt.savefig("figures/3D_histogram.png")
 
 
+def histogram2D(mesh_info):
+    fig, axs = plt.subplots(1, 2, figsize=(12, 6), sharey=True, tight_layout=False)
+
+    data = []
+    for _, m in mesh_info.iterrows():
+        data.append([m["Vertices"], m["Faces"]])
+
+    # Convert to numpy array and split data 
+    data = np.array(data)
+    vertices, faces = zip(*data)
+
+    n_bins = 15
+
+    axs[0].hist(vertices, bins=n_bins)
+    axs[1].hist(faces, bins=n_bins)
+
+    axs[0].set_title('Vertices')
+    axs[0].set_xlabel('Total number')
+    axs[0].set_ylabel('Frequency')
+    axs[1].set_title('Faces')
+    axs[1].set_xlabel('Total number')
+    axs[1].set_ylabel('Frequency')
+
+    plt.savefig("figures/2D_histogram.png")
+
+
 # Load mesh info from existing CSV file
 mesh_info = pd.read_csv("data/mesh_info.csv")
 boxplot(mesh_info)
-histogram(mesh_info)
+histogram2D(mesh_info)
+histogram3D(mesh_info)

@@ -5,7 +5,7 @@ import pymeshlab
 
 parser = argparse.ArgumentParser(description="Visualize a given mesh.")
 parser.add_argument("--mesh_path", type=str, dest="mesh_path",
-                    default="./data/LabeledDB_new/Ant/81.off", help="Path to the mesh file.")
+                    default="../data/Spoon/D00014.obj", help="Path to the mesh file.")
 parser.add_argument("--visualization_method", type=str, dest="visualization_method",
                     default="shade", help="Visualization method. Either 'shade' or 'wired'.", choices=["shade", "wired"])
 
