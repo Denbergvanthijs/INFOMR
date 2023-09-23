@@ -1,3 +1,5 @@
 open3d
 pymeshlab
 numpy
+pandas
+tqdm
