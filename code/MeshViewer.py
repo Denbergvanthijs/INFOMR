@@ -58,7 +58,7 @@ def visualize(mesh_path: str, visualization_method: str, width: int = 1280, heig
 
 if __name__ == "__main__":
     # Obtain filename from command line input
-    # Example command: python visualize_mesh.py --mesh_path ./data/LabeledDB_new/Ant/81.off --visualization_method shade
+    # Example command: python visualize_mesh.py --mesh_path ../data/Spoon/D00014.obj --visualization_method shade
     args = parser.parse_args()
 
     vertices, faces = show_info(args.mesh_path)
