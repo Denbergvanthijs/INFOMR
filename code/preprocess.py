@@ -17,12 +17,14 @@ def normalise_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # TODO: figure out which barycenter to use
     print(f"barycenter: {barycenter.round(3)}; shell_barycenter: {shell_barycenter.round(3)};\npca:\n{pca_axis.round(3)}")
 
-    # Translate: baricenter to origin
+    ### Translate: baricenter to origin ###
+
     new_origin = [1, 2, 3]  # TODO: Calculate new origin
     # traslmethod of 3 is to set a new origin instead of translating
     meshset.apply_filter("compute_matrix_from_translation", traslmethod=3, neworigin=new_origin)
 
-    # Pose: Rotate to align axes
+    ### Pose: Rotate to align axes ###
+
     # rotcenter=1 to rotate around barycenter
     # rotaxis=1 is x, rotaxis=2 is y, rotaxis=3 is z
     x_angle = 30  # TODO: Calculate rotation angles
@@ -33,20 +35,26 @@ def normalise_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     meshset.apply_filter("compute_matrix_from_rotation", rotaxis=2, rotcenter=1, angle=y_angle)
     meshset.apply_filter("compute_matrix_from_rotation", rotaxis=3, rotcenter=1, angle=z_angle)
 
-    # Flip: heavy side to negative
+    ### Flip: heavy side to negative ###
+
     # TODO: Calculate which axis to flip
     flip_x = True  # Flip along YZ plane
     flip_y = False  # Flip along XZ plane
     flip_z = False  # Flip along XY plane
     meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
-    # Size: multiply every dimension by inverse biggest axis
+    ### Size: multiply every dimension by inverse biggest axis ###
+
     # scalecenter=1 to scale around barycenter
     # unitflag=True to scale to unit cube
     meshset.apply_filter("compute_matrix_from_scaling_or_normalization", scalecenter=1, unitflag=True)
 
-    # Remesh
-    ...
+    ### Remesh ###
+
+    # Filter and Parameters based on TA's code
+    # target_edge_len = pymeshlab.AbsoluteValue(0.02)  # TODO: Choose appropriate value
+    # remashing_iterations = 2  # TODO: Choose appropriate value
+    # meshset.apply_filter("meshing_isotropic_explicit_remeshing", iterations=remashing_iterations, targetlen=target_edge_len)
 
     return meshset
 
