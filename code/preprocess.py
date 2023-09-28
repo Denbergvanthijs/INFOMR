@@ -8,17 +8,42 @@ from tqdm import tqdm
 
 
 def normalise_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
+    # Possibly usefull variables
+    measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
+    barycenter = measures["barycenter"]  # Vertex barycenter according to documentation
+    shell_barycenter = measures["shell_barycenter"]  # Thin shell barycenter (mesh only) according to documentation
+    pca_axis = measures["pca"]
+
+    # TODO: figure out which barycenter to use
+    print(f"barycenter: {barycenter.round(3)}; shell_barycenter: {shell_barycenter.round(3)};\npca:\n{pca_axis.round(3)}")
+
     # Translate: baricenter to origin
-    ...
+    new_origin = [1, 2, 3]  # TODO: Calculate new origin
+    # traslmethod of 3 is to set a new origin instead of translating
+    meshset.apply_filter("compute_matrix_from_translation", traslmethod=3, neworigin=new_origin)
 
     # Pose: Rotate to align axes
-    ...
+    # rotcenter=1 to rotate around barycenter
+    # rotaxis=1 is x, rotaxis=2 is y, rotaxis=3 is z
+    x_angle = 30  # TODO: Calculate rotation angles
+    y_angle = 60
+    z_angle = 90
+
+    meshset.apply_filter("compute_matrix_from_rotation", rotaxis=1, rotcenter=1, angle=x_angle)
+    meshset.apply_filter("compute_matrix_from_rotation", rotaxis=2, rotcenter=1, angle=y_angle)
+    meshset.apply_filter("compute_matrix_from_rotation", rotaxis=3, rotcenter=1, angle=z_angle)
 
     # Flip: heavy side to negative
-    ...
+    # TODO: Calculate which axis to flip
+    flip_x = True  # Flip along YZ plane
+    flip_y = False  # Flip along XZ plane
+    flip_z = False  # Flip along XY plane
+    meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
     # Size: multiply every dimension by inverse biggest axis
-    ...
+    # scalecenter=1 to scale around barycenter
+    # unitflag=True to scale to unit cube
+    meshset.apply_filter("compute_matrix_from_scaling_or_normalization", scalecenter=1, unitflag=True)
 
     # Remesh
     ...
@@ -37,6 +62,8 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
     :rtype: np.ndarray
     """
     meshset = pymeshlab.MeshSet()
+    meshset_normalised = pymeshlab.MeshSet()
+
     categories = next(os.walk(data_folder))[1]
     n_categories = len(categories) if not n_categories else n_categories
     print(f"Reading {n_categories} categories from {data_folder}...")
@@ -71,20 +98,33 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
                 print(f"The '{filename}' file does not exist.")
                 continue
 
-            meshset.load_new_mesh(fp_mesh)
-            mesh = meshset.current_mesh()
-
-            meshset_normalised = normalise_mesh(meshset)
+            meshset_normalised.load_new_mesh(fp_mesh)
+            meshset_normalised = normalise_mesh(meshset_normalised)
+            mesh_normalised = meshset_normalised.current_mesh()
 
             # Write normalised mesh to output folder
             meshset_normalised.save_current_mesh(fp_mesh_out)
 
+            meshset.load_new_mesh(fp_mesh)
+            mesh = meshset.current_mesh()
             # Obtain mesh information
             vertices = mesh.vertex_number()
             faces = mesh.face_number()
             bbox = mesh.bounding_box()
             bbox_min = bbox.min()  # [x, y, z]
             bbox_max = bbox.max()  # [x, y, z]
+
+            vertices_normalised = mesh_normalised.vertex_number()
+            faces_normalised = mesh_normalised.face_number()
+            bbox_normalised = mesh_normalised.bounding_box()
+            bbox_min_normalised = bbox_normalised.min()  # [x, y, z]
+            bbox_max_normalised = bbox_normalised.max()  # [x, y, z]
+
+            # Print old and normalised vertex and face count
+            print(f"Old: {vertices} vertices, {faces} faces; normalised: {vertices_normalised} vertices, {faces_normalised} faces")
+
+            # Print old and normalised bounding box
+            print(f"Old: {bbox_min.round(3)} - {bbox_max.round(3)}; normalised: {bbox_min_normalised.round(3)} - {bbox_max_normalised.round(3)}\n")
 
             mesh_info.append([filename, category, vertices, faces,
                               bbox_min[0], bbox_min[1], bbox_min[2],
