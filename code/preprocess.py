@@ -7,7 +7,26 @@ import pymeshlab
 from tqdm import tqdm
 
 
-def read_meshes(data_folder: str = "data", n_categories: int = False) -> np.ndarray:
+def normalise_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
+    # Translate: baricenter to origin
+    ...
+
+    # Pose: Rotate to align axes
+    ...
+
+    # Flip: heavy side to negative
+    ...
+
+    # Size: multiply every dimension by inverse biggest axis
+    ...
+
+    # Remesh
+    ...
+
+    return meshset
+
+
+def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalised", n_categories: int = 1) -> np.ndarray:
     """Reads meshes from data folder and returns a numpy array with mesh info.
 
     :param data_folder: Path to ShapeDatabase folder, defaults to "data"
@@ -17,39 +36,48 @@ def read_meshes(data_folder: str = "data", n_categories: int = False) -> np.ndar
     :return: Numpy array with mesh info
     :rtype: np.ndarray
     """
-    ms = pymeshlab.MeshSet()
+    meshset = pymeshlab.MeshSet()
     categories = next(os.walk(data_folder))[1]
     n_categories = len(categories) if not n_categories else n_categories
     print(f"Reading {n_categories} categories from {data_folder}...")
+
+    # Make output folder if it does not exist
+    if not os.path.exists(data_folder_output):
+        os.makedirs(data_folder_output)
 
     # Initial list to store all mesh info
     mesh_info = []
 
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     for category in tqdm(categories[:n_categories]):
-        category_folder = os.path.join(data_folder, category)
+        fp_cat_in = os.path.join(data_folder, category)  # Input folder
+        fp_cat_out = os.path.join(data_folder_output, category)  # Output folder
 
-        if not os.path.exists(category_folder):
+        if not os.path.exists(fp_cat_in):
             print(f"The '{category}' folder does not exist.")
             continue
 
+        # Make subfolder for current category in output folder
+        if not os.path.exists(fp_cat_out):
+            os.makedirs(fp_cat_out)
+
         # Iterate over all mesh files in current subfolder
-        for filename in os.listdir(category_folder):
-            mesh_path = os.path.join(category_folder, filename)
+        for filename in os.listdir(fp_cat_in):
+            fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
+            fp_mesh_out = os.path.join(fp_cat_out, filename)  # Output mesh file
 
             # Load a single mesh
-            if not os.path.isfile(mesh_path):
+            if not os.path.isfile(fp_mesh):
                 print(f"The '{filename}' file does not exist.")
                 continue
 
-            ms.load_new_mesh(mesh_path)
-            mesh = ms.current_mesh()
+            meshset.load_new_mesh(fp_mesh)
+            mesh = meshset.current_mesh()
 
-            if mesh_path == "data\AircraftBuoyant\m1337.obj":
-                ms.apply_filter("generate_resampled_uniform_mesh", mergeclosevert=True)
-                # ms.apply_filter("remove_isolated_pieces_wrt_diameter",mincomponentdiag=pymeshlab.Percentage(5))
-                ms.save_current_mesh("data\AircraftBuoyant\\resampled_m1337.obj")
-                # ms.save_current_mesh(category_folder + "\\resampled_" + filename)
+            meshset_normalised = normalise_mesh(meshset)
+
+            # Write normalised mesh to output folder
+            meshset_normalised.save_current_mesh(fp_mesh_out)
 
             # Obtain mesh information
             vertices = mesh.vertex_number()
