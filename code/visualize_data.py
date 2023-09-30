@@ -121,11 +121,15 @@ def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "
     counts = counts[:top_n]
 
     # Plot seaborn barplot, class names on y-axis
-    fig = plt.figure(figsize=(8, 6))
-    sns.barplot(x=counts.values, y=counts.index, color=UU_YELLOW)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.barplot(x=counts.values, y=counts.index, color=UU_YELLOW, ax=ax)
     plt.title(f"Class distribution of top {top_n} out of {counts_len} classes")
-    plt.xlabel("Count")
+    plt.xlabel("Number of shapes")
     plt.ylabel("Class")
+
+    # Add counts to each bar
+    for c in ax.containers:
+        ax.bar_label(c, fmt=" %.0f", color=UU_RED)
 
     # Plot average count
     plt.axvline(counts.mean(), color=UU_RED, linestyle="dashed", label=f"Mean ({counts.mean():.2f})")
@@ -133,6 +137,7 @@ def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "
 
     plt.tight_layout()
     plt.savefig(fp_out)
+    plt.show()
 
     # Reset plot for future plotting
     plt.clf()
@@ -156,7 +161,9 @@ def class_histogram(mesh_info, every_n: int = 20) -> None:
     plt.xlabel("Number of shapes in class")
     plt.tight_layout()
     plt.savefig("./figures/class_histogram.eps")
-    plt.show()
+
+    # Reset plot for future plotting
+    plt.clf()
 
 
 if __name__ == "__main__":
@@ -164,10 +171,10 @@ if __name__ == "__main__":
     mesh_info = pd.read_csv("./data/mesh_info.csv")
 
     # Various plots
-    boxplot(mesh_info, column="Vertices")
-    boxplot(mesh_info, column="Faces")
-    histogram2D(mesh_info, "Vertices")
-    histogram2D(mesh_info, "Faces")
+    # boxplot(mesh_info, column="Vertices")
+    # boxplot(mesh_info, column="Faces")
+    # histogram2D(mesh_info, "Vertices")
+    # histogram2D(mesh_info, "Faces")
     # histogram3D(mesh_info)
     class_distribution(mesh_info)  # Plot distribution of classes
-    class_histogram(mesh_info)  # Plot histogram of classes
+    # class_histogram(mesh_info)  # Plot histogram of classes
