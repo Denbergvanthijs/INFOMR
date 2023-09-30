@@ -1,8 +1,7 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-
 
 # Colors for visualizing (official UU colors from https://www.uu.nl/en/organisation/corporate-identity/brand-policy/colour)
 UU_YELLOW = "#FFCD00"
@@ -11,7 +10,8 @@ UU_CREME = "#FFE6AB"
 UU_ORANGE = "#F3965E"
 UU_BURGUNDY = "#AA1555"
 UU_BROWN = "#6E3B23"
-UU_PAL = sns.color_palette([UU_YELLOW, UU_RED, UU_CREME, UU_ORANGE, UU_BURGUNDY, UU_BROWN]) 
+UU_BLUE = "#5287C6"
+UU_PAL = sns.color_palette([UU_YELLOW, UU_RED, UU_CREME, UU_ORANGE, UU_BURGUNDY, UU_BROWN, UU_BLUE])
 
 
 # Function to calculate outliers (shapes outside of 4th quartile of boxplot)
@@ -32,10 +32,9 @@ def calc_outliers(data):
 
 
 # Function to create boxplots of number of vertices and faces
-def boxplot(mesh_info):
+def boxplot(mesh_info, column: str) -> None:
     # Load vertice and face counts
-    vertices = mesh_info['Vertices'].values
-    faces = mesh_info['Faces'].values
+    data = mesh_info[column].values
 
     # Min and max number of faces and vertices
     # print(min(vertices), min(faces))      16, 16
@@ -45,45 +44,38 @@ def boxplot(mesh_info):
     # calc_outliers(vertices)      upper whisker: 15032, num. outliers: 247
     # calc_outliers(faces)         upper whisker: 31986.5, num. outliers: 256
 
-    # Boxplot showing number of vertices
+    # Boxplot showing number of vertices and faces
     fig = plt.figure(figsize=(6, 8))
-    plt.boxplot(vertices)
-    plt.title("Boxplot of Number of Vertices")
+    # X-axis labels off
+    plt.boxplot(data, labels=[""])
+    plt.title(f"Boxplot of number of {column.lower()}")
     plt.ylabel("Count")
-    plt.savefig("../figures/boxplot_vertices.png")
-
-    # Boxplot showing number of faces
-    fig = plt.figure(figsize=(6, 8))
-    plt.boxplot(faces)
-    plt.title("Boxplot of Number of Faces")
-    plt.ylabel("Count")
-    plt.savefig("../figures/boxplot_faces.png")
+    plt.tight_layout()
+    plt.savefig(f"./figures/boxplot_{column.lower()}.eps")
 
     # Reset plot for future plotting
     plt.clf()
 
 
 # Function to create 2D histogram of either vertice or face count
-def histogram2D(mesh_info, choice):
-    n_bins = 15
-
-    # Calculate the mean of the chosen variable (i.e. 'Vertices' or 'Faces')
-    mean_value = mesh_info[choice].mean()
+def histogram2D(mesh_info, column, n_bins=15):
+    # Calculate the mean of the chosen variable (i.e. "Vertices" or "Faces")
+    mean_value = mesh_info[column].mean()
 
     fig = plt.figure(figsize=(8, 6))
 
     # Plot histogram based on variable choice
-    sns.histplot(data=mesh_info, color='#0076ff', x=choice, bins=n_bins, kde=True)
+    sns.histplot(data=mesh_info, color=UU_BLUE, x=column, bins=n_bins, kde=True)
+    plt.title(f"2D Histogram of number of {column}")
+    plt.xlabel(f"Number of {column.lower()}")
+    plt.ylabel("Frequency")
 
     # Add a vertical line at the mean
-    plt.axvline(mean_value, color='red', linestyle='dashed', linewidth=2, label=f'Mean ({mean_value:.2f})')
-
-    plt.title(f"2D Histogram of Number of {choice}")
-    plt.xlabel(f"Number of {choice.lower()}")
-    plt.ylabel("Frequency")
+    plt.axvline(mean_value, color=UU_RED, linestyle="dashed", label=f"Mean ({mean_value:.2f})")
     plt.legend()
 
-    plt.savefig(f"../figures/{choice.lower()}_hist.png")
+    plt.tight_layout()
+    plt.savefig(f"./figures/{column.lower()}_hist.eps")
 
     # Reset plot for future plotting
     plt.clf()
@@ -92,8 +84,8 @@ def histogram2D(mesh_info, choice):
 # Function to create a 3D histogram of shapes in dataset
 def histogram3D(mesh_info):
     # Load vertice and face counts
-    vertices = mesh_info['Vertices'].values
-    faces = mesh_info['Faces'].values
+    vertices = mesh_info["Vertices"].values
+    faces = mesh_info["Faces"].values
 
     # Create a 3D histogram using Seaborn
     fig = plt.figure(figsize=(9, 9))
@@ -106,7 +98,7 @@ def histogram3D(mesh_info):
 
     xpos, ypos = np.meshgrid(xedges[:-1] + 0.5 * np.diff(xedges), yedges[:-1] + 0.5 * np.diff(yedges))
 
-    ax.bar3d(xpos.flatten(), ypos.flatten(), np.zeros_like(hist).flatten(), 
+    ax.bar3d(xpos.flatten(), ypos.flatten(), np.zeros_like(hist).flatten(),
              dx=np.diff(xedges)[0], dy=np.diff(yedges)[0], dz=hist.flatten(), color=UU_YELLOW, shade=True)
 
     ax.set_xlabel("Vertices", fontsize=11)
@@ -114,14 +106,45 @@ def histogram3D(mesh_info):
     ax.set_zlabel("Frequency", fontsize=11)
     ax.set_title("3D Shape Histogram", fontsize=20)
 
-    plt.savefig("../figures/3D_histogram.png")
+    plt.savefig("./figures/3D_histogram.eps")
+
+    # Reset plot for future plotting
+    plt.clf()
 
 
-# Load mesh info from existing CSV file
-mesh_info = pd.read_csv("../data/mesh_info.csv")
+def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "./figures/class_distribution.eps") -> None:
+    counts = mesh_info["Class"].value_counts()
+    counts_len = len(counts)
 
-# Various plots
-boxplot(mesh_info)
-histogram2D(mesh_info, 'Vertices')
-histogram2D(mesh_info, 'Faces')
-histogram3D(mesh_info)
+    # Only top 10 classes
+    counts = counts[:top_n]
+
+    # Plot seaborn barplot, class names on y-axis
+    fig = plt.figure(figsize=(8, 6))
+    sns.barplot(x=counts.values, y=counts.index, color=UU_YELLOW)
+    plt.title(f"Class distribution of top {top_n} out of {counts_len} classes")
+    plt.xlabel("Count")
+    plt.ylabel("Class")
+
+    # Plot average count
+    plt.axvline(counts.mean(), color=UU_RED, linestyle="dashed", label=f"Mean ({counts.mean():.2f})")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(fp_out)
+
+    # Reset plot for future plotting
+    plt.clf()
+
+
+if __name__ == "__main__":
+    # Load mesh info from existing CSV file
+    mesh_info = pd.read_csv("./data/mesh_info.csv")
+
+    # Various plots
+    boxplot(mesh_info, column="Vertices")
+    boxplot(mesh_info, column="Faces")
+    histogram2D(mesh_info, "Vertices")
+    histogram2D(mesh_info, "Faces")
+    # histogram3D(mesh_info)
+    class_distribution(mesh_info)  # Plot distribution of classes
