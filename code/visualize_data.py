@@ -138,6 +138,27 @@ def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "
     plt.clf()
 
 
+def class_histogram(mesh_info, every_n: int = 20) -> None:
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    data = mesh_info["Class"].value_counts().values
+    bins = np.arange(0, data.max() + every_n, every_n)
+
+    ax.hist(data, bins=bins, color=UU_YELLOW, edgecolor=UU_RED, range=(0, data.max() + every_n))
+    ax.set_xticks(bins)  # Set x-axis ticks
+    ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)  # Remove y ticks
+
+    # Add counts to each bar
+    for c in ax.containers:
+        ax.bar_label(c, fmt="%.0f class(es)", color=UU_RED)
+
+    plt.title("Histogram of number of shapes in each class")
+    plt.xlabel("Number of shapes in class")
+    plt.tight_layout()
+    plt.savefig("./figures/class_histogram.eps")
+    plt.show()
+
+
 if __name__ == "__main__":
     # Load mesh info from existing CSV file
     mesh_info = pd.read_csv("./data/mesh_info.csv")
@@ -149,3 +170,4 @@ if __name__ == "__main__":
     histogram2D(mesh_info, "Faces")
     # histogram3D(mesh_info)
     class_distribution(mesh_info)  # Plot distribution of classes
+    class_histogram(mesh_info)  # Plot histogram of classes
