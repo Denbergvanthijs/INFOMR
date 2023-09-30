@@ -62,10 +62,10 @@ def histogram2D(mesh_info, column, n_bins=15):
     # Calculate the mean of the chosen variable (i.e. "Vertices" or "Faces")
     mean_value = mesh_info[column].mean()
 
-    fig = plt.figure(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     # Plot histogram based on variable choice
-    sns.histplot(data=mesh_info, color=UU_BLUE, x=column, bins=n_bins, kde=True)
+    sns.histplot(data=mesh_info, color=UU_BLUE, x=column, bins=n_bins, kde=True, ax=ax)
     plt.title(f"2D Histogram of number of {column}")
     plt.xlabel(f"Number of {column.lower()}")
     plt.ylabel("Frequency")
@@ -75,7 +75,8 @@ def histogram2D(mesh_info, column, n_bins=15):
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig(f"./figures/{column.lower()}_hist.eps")
+    # Dont save as eps, since opacity will be lost otherwise
+    plt.savefig(f"./figures/{column.lower()}_hist.png")
 
     # Reset plot for future plotting
     plt.clf()
