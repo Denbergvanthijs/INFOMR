@@ -126,7 +126,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     return meshset
 
 
-def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 1) -> np.ndarray:
+def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 0) -> np.ndarray:
     """Reads meshes from data folder and returns a numpy array with mesh info.
 
     :param data_folder: Path to ShapeDatabase folder, defaults to "data"
