@@ -15,13 +15,7 @@ def sign_error(a, b=[-1.0, -1.0, -1.0]):
 
 
 def calc_vertices_sign(vertices: np.ndarray) -> tuple:
-    vx = vertices[:, 0]
-    vy = vertices[:, 1]
-    vz = vertices[:, 2]
-
-    signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
-    signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
-    signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
+    signx, signy, signz = np.sign(np.sum(np.sign(vertices) * np.square(vertices), axis=0))
 
     return signx, signy, signz
 
