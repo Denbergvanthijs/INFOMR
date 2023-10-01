@@ -15,18 +15,27 @@ def sign_error(a, b=[-1.0, -1.0, -1.0]):
 
 
 def calc_vertices_sign(vertices: np.ndarray) -> tuple:
+    if np.shape(vertices)[1] != 3:
+        raise RuntimeError("Oops! The vertices array has the wrong shape!")
+
     signx, signy, signz = np.sign(np.sum(np.sign(vertices) * np.square(vertices), axis=0))
 
     return signx, signy, signz
+
+
+def flip_flags(signx: float, signy: float, signz: float) -> tuple:
+    flip_x = True if signx > 0 else False  # Flip along YZ plane
+    flip_y = True if signy > 0 else False  # Flip along XZ plane
+    flip_z = True if signz > 0 else False  # Flip along XY plane
+
+    return flip_x, flip_y, flip_z
 
 
 def rows_sqr_error(m1, m2=np.identity(3)):
     if np.shape(m1) != np.shape(m2):
         raise RuntimeError("Oops! The matrices have different shapes!")
 
-    errors = []
-    for row1, row2 in zip(m1, m2):
-        errors.append(np.sum(np.square(row1)) - np.sum(np.square(row2)))
+    errors = np.sum(np.square(m1), axis=1) - np.sum(np.square(m2), axis=1)
 
     return np.sum(errors)
 
@@ -79,16 +88,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
 
     # Flip axes whose pc is in the positive direction (to flip more mass towards negative side)
     # pca_axes = measures["pca"]
-    flip_x = False
-    flip_y = False
-    flip_z = False
-
-    if signx > 0:
-        flip_x = True  # Flip along YZ plane
-    if signy > 0:
-        flip_y = True  # Flip along XZ plane
-    if signz > 0:
-        flip_z = True  # Flip along XY plane
+    flip_x, flip_y, flip_z = flip_flags(signx, signy, signz)  # Whether to flip along any of the axes
 
     meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
