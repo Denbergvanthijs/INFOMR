@@ -5,7 +5,7 @@ import pymeshlab
 
 parser = argparse.ArgumentParser(description="Visualize a given mesh.")
 parser.add_argument("--mesh_path", type=str, dest="mesh_path",
-                    default="../data/Spoon/D00014.obj", help="Path to the mesh file.")
+                    default="./data/Spoon/D00014.obj", help="Path to the mesh file.")
 parser.add_argument("--visualization_method", type=str, dest="visualization_method",
                     default="shade", help="Visualization method. Either 'shade' or 'wired'.", choices=["shade", "wired"])
 
@@ -47,18 +47,23 @@ def visualize(mesh_path: str, visualization_method: str, width: int = 1280, heig
 
     window_name = f"RorschachViz - Visualized mesh: {mesh_path}"
 
+    # Draw cartesian frame of reference
+    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
+    size=1)
+    mesh_frame.translate([0,0,0])
+
     # Visualize the mesh
     if visualization_method == "shade":
-        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name)
+        o3d.visualization.draw_geometries([mesh_frame,mesh], width=width, height=height, window_name=window_name)
     elif visualization_method == "wired":
-        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name, mesh_show_wireframe=True)
+        o3d.visualization.draw_geometries([mesh_frame,mesh], width=width, height=height, window_name=window_name, mesh_show_wireframe=True)
     else:
         raise IndexError("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
 
 
 if __name__ == "__main__":
     # Obtain filename from command line input
-    # Example command: python visualize_mesh.py --mesh_path ../data/Spoon/D00014.obj --visualization_method shade
+    # Example command: python visualize_mesh.py --mesh_path ./data/Spoon/D00014.obj --visualization_method shade
     args = parser.parse_args()
 
     vertices, faces = show_info(args.mesh_path)
