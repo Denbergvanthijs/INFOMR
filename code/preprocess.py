@@ -35,15 +35,15 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # Possibly usefull variables
     measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
     # All keys of measures dict:
-    # 'barycenter'
-    # 'shell_barycenter'
-    # 'pca'
-    # 'bbox'
-    # 'surface_area'
-    # 'total_edge_inc_faux_length'
-    # 'total_edge_length'
-    # 'avg_edge_inc_faux_length'
-    # 'avg_edge_length'
+    # "barycenter"
+    # "shell_barycenter"
+    # "pca"
+    # "bbox"
+    # "surface_area"
+    # "total_edge_inc_faux_length"
+    # "total_edge_length"
+    # "avg_edge_inc_faux_length"
+    # "avg_edge_length"
     barycenter = measures["barycenter"]
     # print(f"bc: {np.sum(np.square(measures['barycenter']))}")
 
@@ -97,7 +97,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     signx, signy, signz = calc_vertices_sign(vertices)
 
     # print(f"SOM flipped: [{signx}  {signy}  {signz}]")
-    bbox = measures['bbox']
+    bbox = measures["bbox"]
     bbox_max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
     # print(f"Max dim: {bbox_max_dim}")
     # print(f"bc after flip: {np.sum(np.square(measures['barycenter']))}")
@@ -109,7 +109,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     meshset.apply_filter("compute_matrix_from_scaling_or_normalization", scalecenter=0, unitflag=True)
 
     measures = meshset.get_geometric_measures()  # Compute measures again after scaling
-    bbox = measures['bbox']
+    bbox = measures["bbox"]
     bbox_max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
     # print(f"Scaled max dim: {bbox_max_dim}")
     # print(f"bc after scaling: {np.sum(np.square(measures['barycenter']))}")
