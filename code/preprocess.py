@@ -6,26 +6,29 @@ import pandas as pd
 import pymeshlab
 from tqdm import tqdm
 
-def sign_error(a, b = [-1.0,-1.0,-1.0]):
+
+def sign_error(a, b=[-1.0, -1.0, -1.0]):
     if np.shape(a) != np.shape(b):
         raise RuntimeError("Oops! The arrays have different shapes!")
-    else:
-        return np.sum(np.array(a) - np.array(b))
 
-def rows_sqr_error(m1,m2=np.identity(3)):
+    return np.sum(np.array(a) - np.array(b))
+
+
+def rows_sqr_error(m1, m2=np.identity(3)):
     if np.shape(m1) != np.shape(m2):
         raise RuntimeError("Oops! The matrices have different shapes!")
-    else:
-        errors = []
-        for row1, row2 in zip(m1,m2):
-            errors.append(np.sum(np.square(row1)) - np.sum(np.square(row2)))
-        return np.sum(errors)
+
+    errors = []
+    for row1, row2 in zip(m1, m2):
+        errors.append(np.sum(np.square(row1)) - np.sum(np.square(row2)))
+
+    return np.sum(errors)
+
 
 def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # Possibly usefull variables
-
     measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
-    # All keys of measures dict: 
+    # All keys of measures dict:
     # 'barycenter'
     # 'shell_barycenter'
     # 'pca'
@@ -33,8 +36,8 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # 'surface_area'
     # 'total_edge_inc_faux_length'
     # 'total_edge_length'
-    #'avg_edge_inc_faux_length'
-    #'avg_edge_length'
+    # 'avg_edge_inc_faux_length'
+    # 'avg_edge_length'
     barycenter = measures["barycenter"]
     # print(f"bc: {np.sum(np.square(measures['barycenter']))}")
 
@@ -52,7 +55,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
 
     ### Pose: Rotate to align axes ###
 
-    meshset.apply_filter("compute_matrix_by_principal_axis", pointsflag = True, freeze = True, alllayers = True)
+    meshset.apply_filter("compute_matrix_by_principal_axis", pointsflag=True, freeze=True, alllayers=True)
 
     measures = meshset.get_geometric_measures()  # Compute measures again after axis align
     pca_axes = measures["pca"]
@@ -64,9 +67,9 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # Compute second order moment
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    vx = vertices[:,0]
-    vy = vertices[:,1]
-    vz = vertices[:,2]
+    vx = vertices[:, 0]
+    vy = vertices[:, 1]
+    vz = vertices[:, 2]
 
     signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
     signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
@@ -78,19 +81,21 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     flip_x = False
     flip_y = False
     flip_z = False
+
     if signx > 0:
         flip_x = True  # Flip along YZ plane
     if signy > 0:
         flip_y = True  # Flip along XZ plane
     if signz > 0:
         flip_z = True  # Flip along XY plane
+
     meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    vx = vertices[:,0]
-    vy = vertices[:,1]
-    vz = vertices[:,2]
+    vx = vertices[:, 0]
+    vy = vertices[:, 1]
+    vz = vertices[:, 2]
 
     signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
     signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
@@ -123,6 +128,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # meshset.apply_filter("meshing_isotropic_explicit_remeshing", iterations=remashing_iterations, targetlen=target_edge_len)
 
     return meshset
+
 
 def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 0) -> np.ndarray:
     """Reads meshes from data folder and returns a numpy array with mesh info.
@@ -173,7 +179,7 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
                 continue
 
             meshset_normalized.load_new_mesh(fp_mesh)
-            #TODO: fix meshes with inconsistent normals and holes (see technical tip 3b) before normalizing
+            # TODO: fix meshes with inconsistent normals and holes (see technical tip 3b) before normalizing
             meshset_normalized = normalize_mesh(meshset_normalized)
             mesh_normalized = meshset_normalized.current_mesh()
 
@@ -185,44 +191,44 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
             measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
             measures_normalized = meshset_normalized.get_geometric_measures()
 
-            ### Obtain mesh information
-            
+            # Obtain mesh information
+
             # Number of vertices
             v_no = mesh.vertex_number()
             v_no_normalized = mesh_normalized.vertex_number()
-            
+
             # Number of faces
             f_no = mesh.face_number()
             f_no_normalized = mesh_normalized.face_number()
-            
+
             # Mesh barycenter squared distance to origin
             # Expected value after translation: 0
             bary_sqr_dist = np.sum(np.square(measures["barycenter"]))
             bary_sqr_dist_normalized = np.sum(np.square(measures_normalized["barycenter"]))
-            
+
             # Principal component "squared error"
             # Add up the squares of each coordinate for each principal component and subtract from identity matrix
             # reason: after alignment, principal components should be 1 in each global axis dir
             # Expected value after alignment: 0
             pc_sqr_error = rows_sqr_error(measures["pca"])
             pc_sqr_error_normalized = rows_sqr_error(measures_normalized["pca"])
-            
-            # Second order moment "error" 
+
+            # Second order moment "error"
             # Count of how many axes we have to flip to orient "massive" parts in negative direction (global axis)
-            # Expected value after flip: 0 
+            # Expected value after flip: 0
             vertices = mesh.vertex_matrix()
-            vx = vertices[:,0]
-            vy = vertices[:,1]
-            vz = vertices[:,2]
+            vx = vertices[:, 0]
+            vy = vertices[:, 1]
+            vz = vertices[:, 2]
             signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
             signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
             signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
             som_error = sign_error([signx, signy, signz])
 
             vertices_normalized = mesh_normalized.vertex_matrix()
-            vx2 = vertices_normalized[:,0]
-            vy2 = vertices_normalized[:,1]
-            vz2 = vertices_normalized[:,2]
+            vx2 = vertices_normalized[:, 0]
+            vy2 = vertices_normalized[:, 1]
+            vz2 = vertices_normalized[:, 2]
             signx2 = np.sign(np.sum(np.sign(vx2) * np.square(vx2)))
             signy2 = np.sign(np.sum(np.sign(vy2) * np.square(vy2)))
             signz2 = np.sign(np.sum(np.sign(vz2) * np.square(vz2)))
@@ -234,8 +240,8 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
             bbox_normalized = measures_normalized["bbox"]
 
             max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
-            max_dim_normalized = max(bbox_normalized.dim_x(), 
-                                     bbox_normalized.dim_y(), 
+            max_dim_normalized = max(bbox_normalized.dim_x(),
+                                     bbox_normalized.dim_y(),
                                      bbox_normalized.dim_z())
 
             # Print old and normalized vertex and face count
@@ -244,18 +250,18 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
             # Print old and normalized bounding box
             # print(f"Old: {bbox_min.round(3)} - {bbox_max.round(3)}; normalized: {bbox_min_normalized.round(3)} - {bbox_max_normalized.round(3)}\n")
 
-            mesh_info.append([filename, 
-                              category, 
-                              v_no, 
+            mesh_info.append([filename,
+                              category,
+                              v_no,
                               f_no,
                               bary_sqr_dist,
                               pc_sqr_error,
                               som_error,
                               max_dim])
-            
-            mesh_info_normalized.append([filename, 
-                                         category, 
-                                         v_no_normalized, 
+
+            mesh_info_normalized.append([filename,
+                                         category,
+                                         v_no_normalized,
                                          f_no_normalized,
                                          bary_sqr_dist_normalized,
                                          pc_sqr_error_normalized,
@@ -316,9 +322,9 @@ if __name__ == "__main__":
 
         with open(csv_file_path, "w", newline="", encoding="utf-8") as csvfile:
             csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(["Filename", 
-                                 "Class", 
-                                 "Vertices", 
+            csv_writer.writerow(["Filename",
+                                 "Class",
+                                 "Vertices",
                                  "Faces",
                                  "Barycenter offset",
                                  "Principal comp error",
@@ -330,9 +336,9 @@ if __name__ == "__main__":
 
         with open(csv_fp_normalized, "w", newline="", encoding="utf-8") as csvnorm:
             csv_writer = csv.writer(csvnorm)
-            csv_writer.writerow(["Filename", 
-                                 "Class", 
-                                 "Vertices", 
+            csv_writer.writerow(["Filename",
+                                 "Class",
+                                 "Vertices",
                                  "Faces",
                                  "Barycenter offset",
                                  "Principal comp error",
