@@ -112,6 +112,7 @@ def histogram3D(mesh_info):
     # Reset plot for future plotting
     plt.clf()
 
+
 def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "./figures/class_distribution.eps") -> None:
     counts = mesh_info["Class"].value_counts()
     counts_len = len(counts)
@@ -165,26 +166,13 @@ def class_histogram(mesh_info, every_n: int = 20) -> None:
     plt.clf()
 
 
-if __name__ == "__main__":
-    # Load mesh info from existing CSV file
-    mesh_info = pd.read_csv("./data/mesh_info.csv")
-    mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
-
-    # Various plots
-    # boxplot(mesh_info, column="Vertices")
-    # boxplot(mesh_info, column="Faces")
-    # histogram2D(mesh_info, "Vertices")
-    # histogram2D(mesh_info, "Faces")
-    # histogram3D(mesh_info)
-    class_distribution(mesh_info)  # Plot distribution of classes
-    # class_histogram(mesh_info)  # Plot histogram of classes
-
+def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame) -> None:
     # Compute barycenter offset histograms
-    offset_bary_count, bins_bary = np.histogram(mesh_info["Barycenter offset"], bins="sqrt", range=(0,1))
+    offset_bary_count, bins_bary = np.histogram(mesh_info["Barycenter offset"], bins="sqrt", range=(0, 1))
     offset_bary_count_norm, bins_bary_norm = np.histogram(mesh_info_normalized["Barycenter offset"], bins="sqrt")
 
-    # print(f"max offset: {max(mesh_info['Barycenter offset'])}")
-    # print(f"max offset (norm): {max(mesh_info_normalized['Barycenter offset'])}")
+    print(f"Max offset: {mesh_info['Barycenter offset'].max()}")
+    print(f"Max offset (norm): {mesh_info_normalized['Barycenter offset'].max()}")
 
     fig, axes = plt.subplots(1, 2)
     axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count)
@@ -196,12 +184,23 @@ if __name__ == "__main__":
     axes[1].set_title("After Normalization")
     axes[1].set_ylabel("Count")
     axes[1].set_xlabel("Barycenter Squared Distance from Origin")
+
+    plt.tight_layout()
+    plt.savefig("./figures/barycenter_histogram.eps")
     plt.show()
 
-    #TODO: plot the rest of the normalized indicators
+
+if __name__ == "__main__":
+    # Load mesh info from existing CSV file
+    mesh_info = pd.read_csv("./data/mesh_info.csv")
+    mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
 
     # Various plots
-    # boxplot(mesh_info)
-    # histogram2D(mesh_info, 'Vertices')
-    # histogram2D(mesh_info, 'Faces')
+    # boxplot(mesh_info, column="Vertices")
+    # boxplot(mesh_info, column="Faces")
+    # histogram2D(mesh_info, "Vertices")
+    # histogram2D(mesh_info, "Faces")
     # histogram3D(mesh_info)
+    # class_distribution(mesh_info)  # Plot distribution of classes
+    # class_histogram(mesh_info)  # Plot histogram of classes
+    barycenter_hist(mesh_info, mesh_info_normalized)
