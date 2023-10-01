@@ -14,6 +14,18 @@ def sign_error(a, b=[-1.0, -1.0, -1.0]):
     return np.sum(np.array(a) - np.array(b))
 
 
+def calc_vertices_sign(vertices: np.ndarray) -> tuple:
+    vx = vertices[:, 0]
+    vy = vertices[:, 1]
+    vz = vertices[:, 2]
+
+    signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
+    signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
+    signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
+
+    return signx, signy, signz
+
+
 def rows_sqr_error(m1, m2=np.identity(3)):
     if np.shape(m1) != np.shape(m2):
         raise RuntimeError("Oops! The matrices have different shapes!")
@@ -67,13 +79,8 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # Compute second order moment
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    vx = vertices[:, 0]
-    vy = vertices[:, 1]
-    vz = vertices[:, 2]
+    signx, signy, signz = calc_vertices_sign(vertices)
 
-    signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
-    signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
-    signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
     # print(f"SOM sign: [{signx}  {signy}  {signz}]")
 
     # Flip axes whose pc is in the positive direction (to flip more mass towards negative side)
@@ -93,13 +100,8 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
 
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    vx = vertices[:, 0]
-    vy = vertices[:, 1]
-    vz = vertices[:, 2]
+    signx, signy, signz = calc_vertices_sign(vertices)
 
-    signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
-    signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
-    signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
     # print(f"SOM flipped: [{signx}  {signy}  {signz}]")
     bbox = measures['bbox']
     bbox_max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
@@ -130,7 +132,7 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     return meshset
 
 
-def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 0) -> np.ndarray:
+def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 1) -> np.ndarray:
     """Reads meshes from data folder and returns a numpy array with mesh info.
 
     :param data_folder: Path to ShapeDatabase folder, defaults to "data"
@@ -217,21 +219,11 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
             # Count of how many axes we have to flip to orient "massive" parts in negative direction (global axis)
             # Expected value after flip: 0
             vertices = mesh.vertex_matrix()
-            vx = vertices[:, 0]
-            vy = vertices[:, 1]
-            vz = vertices[:, 2]
-            signx = np.sign(np.sum(np.sign(vx) * np.square(vx)))
-            signy = np.sign(np.sum(np.sign(vy) * np.square(vy)))
-            signz = np.sign(np.sum(np.sign(vz) * np.square(vz)))
+            signx, signy, signz = calc_vertices_sign(vertices)
             som_error = sign_error([signx, signy, signz])
 
             vertices_normalized = mesh_normalized.vertex_matrix()
-            vx2 = vertices_normalized[:, 0]
-            vy2 = vertices_normalized[:, 1]
-            vz2 = vertices_normalized[:, 2]
-            signx2 = np.sign(np.sum(np.sign(vx2) * np.square(vx2)))
-            signy2 = np.sign(np.sum(np.sign(vy2) * np.square(vy2)))
-            signz2 = np.sign(np.sum(np.sign(vz2) * np.square(vz2)))
+            signx2, signy2, signz2 = calc_vertices_sign(vertices_normalized)
             som_error_normalized = sign_error([signx2, signy2, signz2])
 
             # Biggest dimension of the bounding box containing the mesh
