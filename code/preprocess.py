@@ -24,9 +24,9 @@ def calc_vertices_sign(vertices: np.ndarray) -> tuple:
 
 
 def flip_flags(signx: float, signy: float, signz: float) -> tuple:
-    flip_x = True if signx > 0 else False  # Flip along YZ plane
-    flip_y = True if signy > 0 else False  # Flip along XZ plane
-    flip_z = True if signz > 0 else False  # Flip along XY plane
+    flip_x = signx > 0  # Flip along YZ plane
+    flip_y = signy > 0  # Flip along XZ plane
+    flip_z = signz > 0  # Flip along XY plane
 
     return flip_x, flip_y, flip_z
 
