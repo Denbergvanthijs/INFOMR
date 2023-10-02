@@ -3,8 +3,8 @@ import os
 
 import numpy as np
 import pandas as pd
-import pymeshlab
 import pymeshfix
+import pymeshlab
 from tqdm import tqdm
 
 if __name__ == "__main__":
@@ -12,18 +12,18 @@ if __name__ == "__main__":
     meshset_clean = pymeshlab.MeshSet()
 
     categories = next(os.walk("data"))[1]
-    n_categories = 1 # len(categories) 
+    n_categories = 1  # len(categories)
     print(f"Reading {n_categories} categories from /data...")
-    
+
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     for category in tqdm(categories[:n_categories]):
         fp_cat_in = os.path.join("data", category)  # Input folder
         fp_cat_out = os.path.join("data_cleaned", category)  # Output folder
-        
+
         if not os.path.exists(fp_cat_in):
             print(f"\nThe '{category}' folder does not exist.")
             continue
-        
+
         # Make subfolder for current category in output folder
         if not os.path.exists(fp_cat_out):
             os.makedirs(fp_cat_out)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
             faces = mesh.face_matrix()
 
             vclean, fclean = pymeshfix.clean_from_arrays(vertices, faces)
-            
+
             mesh = pymeshlab.Mesh(vclean, fclean)
 
             meshset.add_mesh(mesh)
