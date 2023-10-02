@@ -41,7 +41,6 @@ def rows_sqr_error(m1, m2=np.identity(3)):
 
 
 def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
-    # Possibly usefull variables
     measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
     # All keys of measures dict:
     # "barycenter"
@@ -53,14 +52,13 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # "total_edge_length"
     # "avg_edge_inc_faux_length"
     # "avg_edge_length"
-    barycenter = measures["barycenter"]
+    barycenter = measures["barycenter"]  # Compute barycenter before translation
     # print(f"bc: {np.sum(np.square(measures['barycenter']))}")
 
     ### Translate: baricenter to origin ###
-
-    new_origin = measures["barycenter"]  # Use point clod for barycenter and make that new origin
-    # traslmethod of 3 is to set a new origin instead of translating
-    meshset.apply_filter("compute_matrix_from_translation", traslmethod=3, neworigin=new_origin)
+    meshset.apply_filter("compute_matrix_from_translation",
+                         traslmethod=3,  # traslmethod of 3 is to set a new origin instead of translating
+                         neworigin=measures["barycenter"])  # Use point clod for barycenter and make that new origin
 
     measures = meshset.get_geometric_measures()  # Compute measures again with new barycenter
     barycenter = measures["barycenter"]
@@ -69,7 +67,6 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # print(f"pc:\n{pca_axes.round(3)}")
 
     ### Pose: Rotate to align axes ###
-
     meshset.apply_filter("compute_matrix_by_principal_axis", pointsflag=True, freeze=True, alllayers=True)
 
     measures = meshset.get_geometric_measures()  # Compute measures again after axis align
@@ -78,23 +75,20 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # print(f"bc after rot: {np.sum(np.square(measures['barycenter']))}")
 
     ### Flip: heavy side to negative ###
-
-    # Compute second order moment
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    signx, signy, signz = calc_vertices_sign(vertices)
+    signx, signy, signz = calc_vertices_sign(vertices)  # Compute second order moment (SOM) sign
 
     # print(f"SOM sign: [{signx}  {signy}  {signz}]")
 
     # Flip axes whose pc is in the positive direction (to flip more mass towards negative side)
-    # pca_axes = measures["pca"]
     flip_x, flip_y, flip_z = flip_flags(signx, signy, signz)  # Whether to flip along any of the axes
 
     meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
-    signx, signy, signz = calc_vertices_sign(vertices)
+    signx, signy, signz = calc_vertices_sign(vertices)  # Compute measures again after flipping
 
     # print(f"SOM flipped: [{signx}  {signy}  {signz}]")
     bbox = measures["bbox"]
@@ -103,10 +97,9 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # print(f"bc after flip: {np.sum(np.square(measures['barycenter']))}")
 
     ### Size: multiply every dimension by inverse biggest axis ###
-
-    # scalecenter=1 to scale around barycenter
-    # unitflag=True to scale to unit cube
-    meshset.apply_filter("compute_matrix_from_scaling_or_normalization", scalecenter=0, unitflag=True)
+    meshset.apply_filter("compute_matrix_from_scaling_or_normalization",
+                         scalecenter=0,  # scalecenter=0 to scale around world origin, 1 to scale around barycenter
+                         unitflag=True)  # unitflag=True to scale to unit cube
 
     measures = meshset.get_geometric_measures()  # Compute measures again after scaling
     bbox = measures["bbox"]
