@@ -116,6 +116,7 @@ def histogram3D(mesh_info):
 def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "./figures/class_distribution.eps") -> None:
     counts = mesh_info["Class"].value_counts()
     counts_len = len(counts)
+    counts_mean = counts.mean()
 
     # Only top 10 classes
     counts = counts[:top_n]
@@ -132,12 +133,11 @@ def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "
         ax.bar_label(c, fmt=" %.0f", color=UU_RED)
 
     # Plot average count
-    plt.axvline(counts.mean(), color=UU_RED, linestyle="dashed", label=f"Mean ({counts.mean():.2f})")
+    plt.axvline(counts_mean, color=UU_RED, linestyle="dashed", label=f"Mean ({counts_mean:.2f})")
     plt.legend()
 
     plt.tight_layout()
     plt.savefig(fp_out)
-    plt.show()
 
     # Reset plot for future plotting
     plt.clf()
@@ -282,18 +282,18 @@ if __name__ == "__main__":
     # boxplot(mesh_info, column="Vertices")
     # boxplot(mesh_info, column="Faces")
     # histogram3D(mesh_info)
-    # class_distribution(mesh_info)
-    # class_histogram(mesh_info)
+    class_distribution(mesh_info)
+    class_histogram(mesh_info)
 
     # 2.5
-    barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
-    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
-    hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
-    boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
+    # barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
+    # hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
+    # hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
+    # boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
     # print("Max dim before / after normalization:")
     # print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
     # print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
-    max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
+    # max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
 
     # 2.5 once remeshing works:
     # hist_before_after(mesh_info, mesh_info_normalized, "Vertices")
