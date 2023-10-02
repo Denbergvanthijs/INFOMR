@@ -195,6 +195,38 @@ def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame,
     plt.clf()
 
 
+def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str) -> None:
+    # Compute max dim histograms
+    max_dim_median = np.median(mesh_info[column])
+    max_dim_sd = np.std(mesh_info[column])
+    max_dim_count, bins_max_dim = np.histogram(mesh_info[column], bins="sqrt", range=(0, 20))
+    max_dim_count_norm, bins_max_dim_norm = np.histogram(mesh_info_normalized[column], bins="sqrt")
+
+    # Change data to percentages
+    max_dim_count = max_dim_count / max_dim_count.sum() * 100
+    max_dim_count_norm = max_dim_count_norm / max_dim_count_norm.sum() * 100
+
+    print(f"Max offset: {mesh_info['Barycenter offset'].max()}")
+    print(f"Max offset (norm): {mesh_info_normalized['Barycenter offset'].max()}")
+
+    fig, axes = plt.subplots(1, 2)
+    axes[0].hist(bins_max_dim[:-1], bins_max_dim, weights=max_dim_count, color=UU_YELLOW, edgecolor=UU_RED)
+    axes[0].set_title("Before Normalization")
+    axes[0].set_ylabel("Percentage")
+    axes[0].set_xlabel("\nBounding Box Longest Dimension")
+
+    axes[1].hist(bins_max_dim_norm[:-1], bins_max_dim_norm, weights=max_dim_count_norm, color=UU_YELLOW, edgecolor=UU_RED)
+    axes[1].set_title("After Normalization")
+    axes[1].set_ylabel("Percentage")
+    axes[1].set_xlabel("\nBounding Box Longest Dimension")
+
+    plt.tight_layout()
+    plt.savefig(f"./figures/hist_{column.lower().replace(' ', '_')}_before_after.eps")
+    # plt.show()
+
+    plt.clf()
+
+
 def hist_before_after(mesh_info, mesh_info_normalized, column: str, sharex: bool = True, sharey: bool = True) -> None:
     data_before = mesh_info[column].values
     data_after = mesh_info_normalized[column].values
@@ -213,6 +245,28 @@ def hist_before_after(mesh_info, mesh_info_normalized, column: str, sharex: bool
 
     plt.tight_layout()
     plt.savefig(f"./figures/hist_{column.lower().replace(' ', '_')}_before_after.eps")
+    # plt.show()
+
+    plt.clf()
+
+
+def boxplot_before_after(mesh_info, mesh_info_normalized, column: str) -> None:
+    data_before = mesh_info[column].values
+    data_after = mesh_info_normalized[column].values
+
+    fig, axes = plt.subplots(1, 2)
+    sns.boxplot(data=data_before, color=UU_YELLOW, ax=axes[0], showfliers=False)
+    sns.boxplot(data=data_after, color=UU_YELLOW, ax=axes[1], showfliers=False)
+
+    axes[0].set_title("Before normalization")
+    axes[0].set_ylabel(f"\n{column}")
+
+    axes[1].set_title("After normalization")
+    axes[1].set_ylabel(f"\n{column}")
+
+    plt.tight_layout()
+    plt.savefig(f"./figures/boxplot_{column.lower().replace(' ', '_')}_before_after.eps")
+    # plt.show()
 
     plt.clf()
 
@@ -235,6 +289,11 @@ if __name__ == "__main__":
     barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
     hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
     hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
+    boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
+    # print("Max dim before / after normalization:")
+    # print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
+    # print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
+    max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
 
     # 2.5 once remeshing works:
     # hist_before_after(mesh_info, mesh_info_normalized, "Vertices")

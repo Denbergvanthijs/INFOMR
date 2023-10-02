@@ -1,6 +1,7 @@
 # Custom ignores
 data/*
 data_normalized/*
+data_cleaned/*
 screenshots/*
 
 # Byte-compiled / optimized / DLL files
