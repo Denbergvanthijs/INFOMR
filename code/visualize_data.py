@@ -197,8 +197,6 @@ def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame,
 
 def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str) -> None:
     # Compute max dim histograms
-    max_dim_median = np.median(mesh_info[column])
-    max_dim_sd = np.std(mesh_info[column])
     max_dim_count, bins_max_dim = np.histogram(mesh_info[column], bins="sqrt", range=(0, 20))
     max_dim_count_norm, bins_max_dim_norm = np.histogram(mesh_info_normalized[column], bins="sqrt")
 
@@ -206,8 +204,10 @@ def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, co
     max_dim_count = max_dim_count / max_dim_count.sum() * 100
     max_dim_count_norm = max_dim_count_norm / max_dim_count_norm.sum() * 100
 
-    print(f"Max offset: {mesh_info['Barycenter offset'].max()}")
-    print(f"Max offset (norm): {mesh_info_normalized['Barycenter offset'].max()}")
+    max_dim_median = np.median(mesh_info[column])
+    max_dim_sd = np.std(mesh_info[column])
+    print(f"Median max dim: {max_dim_median}")
+    print(f"SD: {max_dim_sd}")
 
     fig, axes = plt.subplots(1, 2)
     axes[0].hist(bins_max_dim[:-1], bins_max_dim, weights=max_dim_count, color=UU_YELLOW, edgecolor=UU_RED)
