@@ -166,28 +166,55 @@ def class_histogram(mesh_info, every_n: int = 20) -> None:
     plt.clf()
 
 
-def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame) -> None:
+def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str) -> None:
     # Compute barycenter offset histograms
-    offset_bary_count, bins_bary = np.histogram(mesh_info["Barycenter offset"], bins="sqrt", range=(0, 1))
-    offset_bary_count_norm, bins_bary_norm = np.histogram(mesh_info_normalized["Barycenter offset"], bins="sqrt")
+    offset_bary_count, bins_bary = np.histogram(mesh_info[column], bins="sqrt", range=(0, 1))
+    offset_bary_count_norm, bins_bary_norm = np.histogram(mesh_info_normalized[column], bins="sqrt")
+
+    # Change data to percentages
+    offset_bary_count = offset_bary_count / offset_bary_count.sum() * 100
+    offset_bary_count_norm = offset_bary_count_norm / offset_bary_count_norm.sum() * 100
 
     print(f"Max offset: {mesh_info['Barycenter offset'].max()}")
     print(f"Max offset (norm): {mesh_info_normalized['Barycenter offset'].max()}")
 
     fig, axes = plt.subplots(1, 2)
-    axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count)
+    axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count, color=UU_YELLOW, edgecolor=UU_RED)
     axes[0].set_title("Before Normalization")
-    axes[0].set_ylabel("Count")
-    axes[0].set_xlabel("Barycenter Squared Distance from Origin")
+    axes[0].set_ylabel("Percentage")
+    axes[0].set_xlabel("\nBarycenter Squared Distance\nfrom Origin")
 
-    axes[1].hist(bins_bary_norm[:-1], bins_bary_norm, weights=offset_bary_count_norm)
+    axes[1].hist(bins_bary_norm[:-1], bins_bary_norm, weights=offset_bary_count_norm, color=UU_YELLOW, edgecolor=UU_RED)
     axes[1].set_title("After Normalization")
-    axes[1].set_ylabel("Count")
-    axes[1].set_xlabel("Barycenter Squared Distance from Origin")
+    axes[1].set_ylabel("Percentage")
+    axes[1].set_xlabel("\nBarycenter Squared Distance\nfrom Origin")
 
     plt.tight_layout()
     plt.savefig("./figures/barycenter_histogram.eps")
-    plt.show()
+
+    plt.clf()
+
+
+def hist_before_after(mesh_info, mesh_info_normalized, column: str, sharex: bool = True, sharey: bool = True) -> None:
+    data_before = mesh_info[column].values
+    data_after = mesh_info_normalized[column].values
+
+    fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
+    sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent")
+    sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent")
+
+    axes[0].set_title("Before normalization")
+    axes[0].set_ylabel("Percentage")
+    axes[0].set_xlabel(f"\n{column}")
+
+    axes[1].set_title("After normalization")
+    axes[1].set_ylabel("Percentage")
+    axes[1].set_xlabel(f"\n{column}")
+
+    plt.tight_layout()
+    plt.savefig(f"./figures/hist_{column.lower().replace(' ', '_')}_before_after.eps")
+
+    plt.clf()
 
 
 if __name__ == "__main__":
@@ -195,12 +222,20 @@ if __name__ == "__main__":
     mesh_info = pd.read_csv("./data/mesh_info.csv")
     mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
 
-    # Various plots
-    # boxplot(mesh_info, column="Vertices")
-    # boxplot(mesh_info, column="Faces")
+    # 2.2
     # histogram2D(mesh_info, "Vertices")
     # histogram2D(mesh_info, "Faces")
+    # boxplot(mesh_info, column="Vertices")
+    # boxplot(mesh_info, column="Faces")
     # histogram3D(mesh_info)
-    # class_distribution(mesh_info)  # Plot distribution of classes
-    # class_histogram(mesh_info)  # Plot histogram of classes
-    barycenter_hist(mesh_info, mesh_info_normalized)
+    # class_distribution(mesh_info)
+    # class_histogram(mesh_info)
+
+    # 2.5
+    barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
+    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
+    hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
+
+    # 2.5 once remeshing works:
+    # hist_before_after(mesh_info, mesh_info_normalized, "Vertices")
+    # hist_before_after(mesh_info, mesh_info_normalized, "Faces")
