@@ -5,26 +5,35 @@ from pymeshlab import MeshSet
 from tqdm import tqdm
 
 
-def compute_a3_histogram(vertices: np.ndarray, n_iter: int = 100, n_bins: int = 10) -> list:
+def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
+    # Based on: https://stackoverflow.com/a/35178910/10603874
+    v2v1 = v1 - v2  # Normalized vectors
+    v2v3 = v3 - v2
+
+    cosine_angle = np.dot(v2v1, v2v3) / (np.linalg.norm(v2v1) * np.linalg.norm(v2v3))
+    angle = np.arccos(cosine_angle)  # Angle in radians
+
+    return np.degrees(angle)  # Angle in degrees from 0 to 180
+
+
+def compute_a3_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
     # A3: angle between 3 random vertices
 
     angles = []
-    for i in range(n_iter):
+    for _ in range(n_iter):
         # Get 3 random vertices, replace=False means no duplicates
         v1, v2, v3 = vertices[np.random.choice(vertices.shape[0], 3, replace=False)]
 
-        # Compute angle between them
-        # angle = compute_angle(v1, v2, v3)
-        angle = 10
+        angle = compute_angle_3D(v1, v2, v3)  # Compute angle between them
+        angles.append(angle)  # Add angle to histogram
 
-        # Add angle to histogram
-        angles.append(angle)
+    hist, _ = np.histogram(angles, bins=n_bins, range=(0, 180))  # Create histogram
+    hist = hist / np.sum(hist)  # Normalize histogram
 
-    # Return N random values temporary as a placeholder
-    return [np.random.random() for _ in range(n_bins)]
+    return hist
 
 
-def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0) -> None:
+def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
     meshset = MeshSet()
 
     categories = next(os.walk(fp_data))[1]
@@ -40,7 +49,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0) -> N
             continue
 
         # Iterate over all mesh files in current subfolder
-        for filename in os.listdir(fp_cat_in):
+        for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}"):
             fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
 
             # Load mesh
@@ -51,14 +60,14 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0) -> N
             vertices = mesh.vertex_matrix()
             faces = mesh.face_matrix()
 
-            a3 = compute_a3_histogram(vertices)
+            a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins)
 
             # Add filename, category and features to list
             shape_features = np.concatenate(([filename, category], a3))
             all_features.append(shape_features)
 
     # Save data to CSV
-    header = "filename,category," + ",".join([f"a3_{i}" for i in range(10)])
+    header = "filename,category," + ",".join([f"a3_{i}" for i in range(n_bins)])
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
@@ -68,6 +77,8 @@ if __name__ == "__main__":
     fp_data = "./data_normalized/"
     fp_csv_out = "./csvs/feature_extraction.csv"
     n_categories = 1  # len(categories)
+    n_iter = 1_000
+    n_bins = 10
 
     # A3: angle between 3 random vertices
     # D1: distance between barycenter and random vertex
@@ -75,4 +86,4 @@ if __name__ == "__main__":
     # D3: square root of area of triangle given by 3 random vertices
     # D4: cube root of volume of tetrahedron formed by 4 random vertices
 
-    extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories)
+    extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
