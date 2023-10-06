@@ -3,6 +3,7 @@ data/*
 data_normalized/*
 data_cleaned/*
 screenshots/*
+csvs/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
