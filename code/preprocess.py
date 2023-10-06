@@ -274,6 +274,10 @@ if __name__ == "__main__":
     csv_file_path = "./data/mesh_info.csv"
     csv_fp_normalized = "./data_normalized/mesh_info.csv"
 
+    fp_meshes_in = "./data_cleaned"  # Input, the refined meshes, i.e. after running patch_meshes.py
+    fp_meshes_out = "./data_normalized"  # Output, the normalised meshes
+    n_categories = 0  # 0 to read all categories
+
     # Load mesh info from existing CSV file
     if read_mesh_info:
         mesh_info = pd.read_csv(csv_file_path)
@@ -295,34 +299,24 @@ if __name__ == "__main__":
 
     # Read mesh info from data folder and save it to a CSV file
     elif save_mesh_info:
-        mesh_info, mesh_info_normalized = read_meshes()
+        column_names = ["Filename", "Class", "Vertices", "Faces",
+                        "Barycenter offset", "Principal comp error", "SOM error", "Max dim"]
+        mesh_info, mesh_info_normalized = read_meshes(data_folder=fp_meshes_in,
+                                                      data_folder_output=fp_meshes_out,
+                                                      n_categories=n_categories)
 
         # Save mesh info in a CSV file
-
         with open(csv_file_path, "w", newline="", encoding="utf-8") as csvfile:
             csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(["Filename",
-                                 "Class",
-                                 "Vertices",
-                                 "Faces",
-                                 "Barycenter offset",
-                                 "Principal comp error",
-                                 "SOM error",
-                                 "Max dim"])
+            csv_writer.writerow(column_names)
 
             for row in mesh_info:
                 csv_writer.writerow(row)
 
+        # Save normalized mesh info in a CSV file
         with open(csv_fp_normalized, "w", newline="", encoding="utf-8") as csvnorm:
             csv_writer = csv.writer(csvnorm)
-            csv_writer.writerow(["Filename",
-                                 "Class",
-                                 "Vertices",
-                                 "Faces",
-                                 "Barycenter offset",
-                                 "Principal comp error",
-                                 "SOM error",
-                                 "Max dim"])
+            csv_writer.writerow(column_names)
 
             for row in mesh_info_normalized:
                 csv_writer.writerow(row)
