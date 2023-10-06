@@ -11,16 +11,23 @@ Please install [Python 3.8.10](https://www.python.org/downloads/release/python-3
 - Install required packages: `pip install -r requirements.txt`
 - Check if installation was succesfull: `python -c "import open3d as o3d; print(o3d.__version__)"`
 
-## Testing data
+## Run the scripts
 
-Multiple files for testing the 3D mesh environment are available:
+1. Run `python ./code/patch_meshes.py` to refine the meshes
+2. Run `python ./code/preprocess.py` to normalize the meshes
+3. Run `python ./code/visualize_data.py` to generate statistics for the refined and normalised meshes
 
-- `./data/D00921.obj`
-  - `.obj` file provided by the TAs, coming from the ShapeDatabase and belonging to the class `Apartment`
-- `./data/Airplane_61.off`
-  - `.off` file originally belonging to the Labeled PSB dataset class `Airplane`
-- `./data/bearded_guy.ply`
-  - `.ply` file from [artec3d.com](https://www.artec3d.com/3d-models/bearded-guy-hd) to test `.ply` files while the website for the Princeton Shape Benchmark dataset is down
+Finally to visualise the meshes, run `MeshViewer.py`. Additional arguments can be provided:
+
+```bash
+python ./code/meshViewer.py --mesh_path ./data/AircraftBuoyant/m1337.obj --visualization_method shade
+python ./code/meshViewer.py --mesh_path ./data_cleaned_/AircraftBuoyant/m1337.obj --visualization_method shade
+python ./code/meshViewer.py --mesh_path ./data_normalized/AircraftBuoyant/m1337.obj --visualization_method shade
+
+python ./code/meshViewer.py --mesh_path ./data/AircraftBuoyant/m1337.obj --visualization_method wired
+python ./code/meshViewer.py --mesh_path ./data_cleaned_/AircraftBuoyant/m1337.obj --visualization_method wired
+python ./code/meshViewer.py --mesh_path ./data_normalized/AircraftBuoyant/m1337.obj --visualization_method wired
+```
 
 ## Resources
 
