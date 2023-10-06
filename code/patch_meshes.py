@@ -1,15 +1,12 @@
 import os
 
 import pymeshfix
-import pymeshlab
+from pymeshlab import Mesh, MeshSet
 from tqdm import tqdm
 
-if __name__ == "__main__":
-    fp_data = "data"
-    n_categories = 1  # len(categories)
 
-    meshset = pymeshlab.MeshSet()
-    meshset_clean = pymeshlab.MeshSet()
+def refine_meshes(fp_data: str, fp_data_out: str = "data_cleaned", n_categories: int = 0) -> None:
+    meshset = MeshSet()
 
     categories = next(os.walk(fp_data))[1]
     print(f"Reading {n_categories} categories from {fp_data}...")
@@ -17,7 +14,7 @@ if __name__ == "__main__":
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     for category in tqdm(categories[:n_categories]):
         fp_cat_in = os.path.join(fp_data, category)  # Input folder
-        fp_cat_out = os.path.join("data_cleaned", category)  # Output folder
+        fp_cat_out = os.path.join(fp_data_out, category)  # Output folder
 
         if not os.path.exists(fp_cat_in):
             print(f"\nThe '{category}' folder does not exist.")
@@ -40,8 +37,16 @@ if __name__ == "__main__":
             vertices = mesh.vertex_matrix()
             faces = mesh.face_matrix()
             vclean, fclean = pymeshfix.clean_from_arrays(vertices, faces)
-            mesh = pymeshlab.Mesh(vclean, fclean)
+            mesh = Mesh(vclean, fclean)
 
             # Save cleaned mesh
             meshset.add_mesh(mesh)
             meshset.save_current_mesh(fp_mesh_out)
+
+
+if __name__ == "__main__":
+    fp_data = "data"
+    fp_data_out = "data_cleaned"
+    n_categories = 1  # len(categories)
+
+    refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
