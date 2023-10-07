@@ -50,6 +50,24 @@ def compute_d1_hist(vertices: np.ndarray, barycenter: np.ndarray, n_iter: int = 
     return hist
 
 
+def compute_d2_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
+    # D2: distance between 2 random vertices
+
+    distances = []
+    for _ in range(n_iter):
+        # Get 2 random vertices, replace=False means v1 and v2 are not the same
+        # However, this does not guarantee that the next pair of vertices is not the same
+        v1, v2 = vertices[np.random.choice(vertices.shape[0], 2, replace=False)]
+
+        distance = np.linalg.norm(v1 - v2)  # Compute distance between them
+        distances.append(distance)
+
+    hist, _ = np.histogram(distances, bins=n_bins, range=(0, 1))  # Create histogram
+    hist = hist / np.sum(hist)  # Normalize histogram
+
+    return hist
+
+
 def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
     meshset = MeshSet()
 
@@ -80,15 +98,17 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
             barycenter = measures["barycenter"]
 
-            a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins)
-            d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins)
+            # Compute features
+            a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
+            d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
+            d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
 
             # Add filename, category and features to list
-            shape_features = np.concatenate(([filename, category], a3, d1))
+            shape_features = np.concatenate(([filename, category], a3, d1, d2))
             all_features.append(shape_features)
 
     hists = ","
-    for feature in ["a3", "d1"]:
+    for feature in ["a3", "d1", "d2"]:
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
