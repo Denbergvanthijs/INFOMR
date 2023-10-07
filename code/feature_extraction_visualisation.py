@@ -38,4 +38,4 @@ if __name__ == "__main__":
     # Round to 1 decimal place for floating point errors like 0.300004
     # plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
     # plot_feat_hist(d2, "D2", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    plot_feat_hist(d3, "D3", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    plot_feat_hist(d3, "D3", "Square root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
