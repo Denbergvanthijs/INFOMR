@@ -68,6 +68,26 @@ def compute_d2_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
     return hist
 
 
+def compute_d3_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
+    # D3: square root of area of triangle given by 3 random vertices
+
+    areas = []
+    for _ in range(n_iter):
+        # Get 3 random vertices, replace=False means no duplicates
+        v1, v2, v3 = vertices[np.random.choice(vertices.shape[0], 3, replace=False)]
+
+        # Compute area of triangle given by 3 vertices
+        # Based on https://math.stackexchange.com/a/128999
+        area = 0.5 * np.linalg.norm(np.cross(v1 * v2, v1 * v3))
+
+        areas.append(area)
+
+    hist, _ = np.histogram(areas, bins=n_bins, range=(0, max(areas)))  # Create histogram
+    hist = hist / np.sum(hist)  # Normalize histogram
+
+    return hist
+
+
 def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
     meshset = MeshSet()
 
@@ -102,13 +122,14 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
             d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
             d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
+            d3 = compute_d3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
 
             # Add filename, category and features to list
-            shape_features = np.concatenate(([filename, category], a3, d1, d2))
+            shape_features = np.concatenate(([filename, category], a3, d1, d2, d3))
             all_features.append(shape_features)
 
     hists = ","
-    for feature in ["a3", "d1", "d2"]:
+    for feature in ["a3", "d1", "d2", "d3"]:
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
