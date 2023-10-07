@@ -33,6 +33,23 @@ def compute_a3_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
     return hist
 
 
+def compute_d1_hist(vertices: np.ndarray, barycenter: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
+    # D1: distance between barycenter and random vertex
+
+    # Use replace=False to avoid duplicates, only when n_iter < vertices.shape[0]
+    if n_iter < vertices.shape[0]:
+        indices = np.random.choice(vertices.shape[0], n_iter, replace=False)
+    else:  # If n_iter >= vertices.shape[0], use all vertices but not more than vertices.shape[0]
+        indices = np.arange(vertices.shape[0])
+
+    distances = np.linalg.norm(vertices[indices] - barycenter, axis=1)
+
+    hist, _ = np.histogram(distances, bins=n_bins, range=(0, 1))  # Create histogram
+    hist = hist / np.sum(hist)  # Normalize histogram
+
+    return hist
+
+
 def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
     meshset = MeshSet()
 
@@ -60,14 +77,22 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             vertices = mesh.vertex_matrix()
             faces = mesh.face_matrix()
 
+            measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
+            barycenter = measures["barycenter"]
+
             a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins)
+            d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins)
 
             # Add filename, category and features to list
-            shape_features = np.concatenate(([filename, category], a3))
+            shape_features = np.concatenate(([filename, category], a3, d1))
             all_features.append(shape_features)
 
+    hists = ","
+    for feature in ["a3", "d1"]:
+        hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
+
     # Save data to CSV
-    header = "filename,category," + ",".join([f"a3_{i}" for i in range(n_bins)])
+    header = "filename,category," + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
