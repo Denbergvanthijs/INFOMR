@@ -3,7 +3,7 @@ import numpy as np
 import seaborn as sns
 
 
-def plot_a3(data: np.ndarray, n_bins: int = 10) -> None:
+def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: list, n_bins: int = 10) -> None:
     # Plot 16 linecharts on top of each other
     fig, ax = plt.subplots()
 
@@ -12,20 +12,24 @@ def plot_a3(data: np.ndarray, n_bins: int = 10) -> None:
         sns.lineplot(x=x_range, y=data[i], ax=ax, color="black", alpha=0.2)
 
     # X ticks in range 0 to 180 degrees
-    plt.xticks(range(n_bins + 1), [f"{i * 180 / n_bins:.0f}" for i in range(n_bins + 1)])
-    plt.xlabel("Angle (degrees)")
+    plt.xticks(range(n_bins + 1), x_ticks_label)
+    plt.xlabel(x_label)
     plt.ylabel("Frequency")
     plt.xlim(0, n_bins)
-    plt.title("A3 histogram")
+    plt.title(f"{feat} histogram")
 
     plt.tight_layout()
-    plt.savefig("./figures/feat_ex/a3_hist.png", dpi=300)
+    plt.savefig(f"./figures/feat_ex/feat_hist_{feat}.png", dpi=300)
     plt.show()
 
 
 if __name__ == "__main__":
     # Load data
-    data = np.loadtxt("./csvs/feature_extraction.csv", delimiter=",", skiprows=1, usecols=range(2, 12))
+    data = np.loadtxt("./csvs/feature_extraction.csv", delimiter=",", skiprows=1, usecols=range(2, 22))
     n_bins = 10
 
-    plot_a3(data, n_bins)
+    a3 = data[:, :n_bins]
+    d1 = data[:, n_bins:]
+
+    plot_feat_hist(a3, "A3", "Angle (degrees)", range(0, 181, 18))
+    plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=10)
