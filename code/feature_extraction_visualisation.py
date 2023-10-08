@@ -25,17 +25,19 @@ def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: lis
 
 if __name__ == "__main__":
     # Load data
-    data = np.loadtxt("./csvs/feature_extraction.csv", delimiter=",", skiprows=1, usecols=range(2, 42))
+    data = np.loadtxt("./csvs/feature_extraction.csv", delimiter=",", skiprows=1, usecols=range(2, 52))
     n_bins = 10
     n_iter = 1_000
 
     a3 = data[:, :n_bins]
     d1 = data[:, n_bins:2 * n_bins]
     d2 = data[:, 2 * n_bins:3 * n_bins]
-    d3 = data[:, 3 * n_bins:]
+    d3 = data[:, 3 * n_bins:4 * n_bins]
+    d4 = data[:, 4 * n_bins:]
 
     # plot_feat_hist(a3, "A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
     # Round to 1 decimal place for floating point errors like 0.300004
     # plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
     # plot_feat_hist(d2, "D2", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
     plot_feat_hist(d3, "D3", "Square root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    plot_feat_hist(d4, "D4", "Cube root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)

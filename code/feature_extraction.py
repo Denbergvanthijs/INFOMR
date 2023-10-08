@@ -78,11 +78,41 @@ def compute_d3_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
 
         # Compute area of triangle given by 3 vertices
         # Based on https://math.stackexchange.com/a/128999
-        area = 0.5 * np.linalg.norm(np.cross(v1 * v2, v1 * v3))
+        area = np.linalg.norm(np.cross(v1 * v2, v1 * v3)) / 2
 
         areas.append(area)
 
+    # Square root of area
+    areas = np.sqrt(areas)
+
     hist, _ = np.histogram(areas, bins=n_bins, range=(0, max(areas)))  # Create histogram
+    hist = hist / np.sum(hist)  # Normalize histogram
+
+    return hist
+
+
+def compute_d4_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
+    # D4: cube root of volume of tetrahedron formed by 4 random vertices
+
+    volumes = []
+    for _ in range(n_iter):
+        # Get 4 random vertices, replace=False means no duplicates
+        v1, v2, v3, v4 = vertices[np.random.choice(vertices.shape[0], 4, replace=False)]
+
+        # Compute volume of tetrahedron formed by 4 vertices
+        # Based on https://en.wikipedia.org/wiki/Tetrahedron
+        volume = np.linalg.norm(np.linalg.det([v1 - v4, v2 - v4, v3 - v4])) / 6
+
+        # Alternative solution using cross and dot product. TODO: investigate which one is faster
+        # volume = np.linalg.norm(np.dot(v1 - v4, np.cross(v2 - v4, v3 - v4))) / 6
+        # assert np.isclose(volume, volume2)
+
+        volumes.append(volume)
+
+    # Cube root of volume
+    volumes = np.cbrt(volumes)
+
+    hist, _ = np.histogram(volumes, bins=n_bins, range=(0, volumes.max()))  # Create histogram
     hist = hist / np.sum(hist)  # Normalize histogram
 
     return hist
@@ -113,8 +143,6 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
             # Get data
             vertices = mesh.vertex_matrix()
-            faces = mesh.face_matrix()
-
             measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
             barycenter = measures["barycenter"]
 
@@ -123,13 +151,14 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
             d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
             d3 = compute_d3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
+            d4 = compute_d4_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
 
             # Add filename, category and features to list
-            shape_features = np.concatenate(([filename, category], a3, d1, d2, d3))
+            shape_features = np.concatenate(([filename, category], a3, d1, d2, d3, d4))
             all_features.append(shape_features)
 
     hists = ","
-    for feature in ["a3", "d1", "d2", "d3"]:
+    for feature in ["a3", "d1", "d2", "d3", "d4"]:
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
