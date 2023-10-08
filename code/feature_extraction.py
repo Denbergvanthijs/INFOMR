@@ -1,3 +1,4 @@
+import itertools
 import os
 
 import numpy as np
@@ -50,17 +51,30 @@ def compute_d1_hist(vertices: np.ndarray, barycenter: np.ndarray, n_iter: int = 
     return hist
 
 
-def compute_d2_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
+def compute_d2_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10, guarantee_unique_pairs: bool = False) -> list:
     # D2: distance between 2 random vertices
 
-    distances = []
-    for _ in range(n_iter):
-        # Get 2 random vertices, replace=False means v1 and v2 are not the same
-        # However, this does not guarantee that the next pair of vertices is not the same
-        v1, v2 = vertices[np.random.choice(vertices.shape[0], 2, replace=False)]
+    if guarantee_unique_pairs:
+        # Get the indices of all possible pairs of vertices
+        indices = np.array(list(itertools.combinations(range(vertices.shape[0]), 2)))
 
-        distance = np.linalg.norm(v1 - v2)  # Compute distance between them
-        distances.append(distance)
+        # Use replace=False to avoid duplicates, only when n_iter < indices.shape[0]
+        # Since not all meshes have enough unique vertices, we need to check this
+        if n_iter < indices.shape[0]:
+            indices = indices[np.random.choice(indices.shape[0], n_iter, replace=False)]
+
+        # Compute distance between each pair of vertices
+        distances = np.linalg.norm(vertices[indices[:, 0]] - vertices[indices[:, 1]], axis=1)
+
+    else:
+        distances = []
+        for _ in range(n_iter):
+            # Get 2 random vertices, replace=False means v1 and v2 are not the same
+            # However, this does not guarantee that the next pair of vertices is not the same
+            v1, v2 = vertices[np.random.choice(vertices.shape[0], 2, replace=False)]
+
+            distance = np.linalg.norm(v1 - v2)  # Compute distance between them
+            distances.append(distance)
 
     hist, _ = np.histogram(distances, bins=n_bins, range=(0, 1))  # Create histogram
     hist = hist / np.sum(hist)  # Normalize histogram
