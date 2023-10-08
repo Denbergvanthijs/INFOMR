@@ -108,6 +108,9 @@ def compute_d3_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
 def compute_d4_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10) -> list:
     # D4: cube root of volume of tetrahedron formed by 4 random vertices
 
+    if vertices.shape[0] < 4:
+        return np.zeros(n_bins)  # Return empty histogram since there are not enough vertices
+
     volumes = []
     for _ in range(n_iter):
         # Get 4 random vertices, replace=False means no duplicates
@@ -136,6 +139,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
     meshset = MeshSet()
 
     categories = next(os.walk(fp_data))[1]
+    n_categories = len(categories) if not n_categories else n_categories
     print(f"Reading {n_categories} categories from {fp_data}...")
 
     all_features = []
@@ -176,7 +180,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename,category," + hists[:-1]  # Remove last comma
+    header = "filename,category" + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
@@ -185,7 +189,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data_normalized/"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 1  # len(categories)
+    n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
