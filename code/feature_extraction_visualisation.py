@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 
@@ -23,21 +24,75 @@ def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: lis
     plt.show()
 
 
+def plot_hist_grid(fp_data, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000) -> None:
+    # Load csv in pandas dataframe
+    df = pd.read_csv(fp_data, delimiter=",")
+
+    # Select the n_classes most popular classes
+    df = df[df["category"].isin(df["category"].value_counts().index[:n_classes])]
+    print(df["category"].value_counts())
+
+    # Create a grid of subplots
+    fig, axes = plt.subplots(nrows=5, ncols=n_classes, figsize=(10, 6), sharex=True, sharey=False)
+
+    # Iterate over all classes in the dataset
+    for i, category in enumerate(df["category"].unique()):
+        # Select the rows in the dataframe that belong to the current class
+        df_class = df[df["category"] == category]
+
+        # Iterate over all features
+        for j, feat in enumerate(["a3", "d1", "d2", "d3", "d4"]):
+            plt.sca(axes[j, i])  # Set current subplot
+            cols = [f"{feat}_{i}" for i in range(n_bins)]  # Column names
+
+            # Plot all linecharts on top of each other
+            x_range = np.arange(n_bins)
+            for k in range(df_class.shape[0]):
+                plt.plot(x_range, df_class[cols].iloc[k], color="black", alpha=0.2)
+
+    # Set x labels
+    for i, (category, value) in enumerate(df["category"].value_counts().items()):
+        plt.sca(axes[-1, i])
+        plt.xlabel(f"{category}\n({value} meshes)")
+
+    # Set y labels
+    for i, feat in enumerate(["A3", "D1", "D2", "D3", "D4"]):
+        plt.sca(axes[i, 0])
+        plt.ylabel(feat, rotation=0, labelpad=20)
+
+    # Disable all ticks
+    for ax in axes.ravel():
+        ax.tick_params(axis="both", which="both", bottom=False, left=False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlim(0, n_bins)
+
+    plt.tight_layout()
+    plt.savefig(f"./figures/feat_ex/feat_hist_grid.png", dpi=300)
+    plt.show()
+
+
 if __name__ == "__main__":
     # Load data
-    data = np.loadtxt("./csvs/feature_extraction.csv", delimiter=",", skiprows=1, usecols=range(2, 52))
+    fp_data = "./csvs/feature_extraction.csv"
     n_bins = 10
     n_iter = 1_000
+    n_classes = 4
 
+    data = np.loadtxt(fp_data, delimiter=",", skiprows=1, usecols=range(2, 52))
     a3 = data[:, :n_bins]
     d1 = data[:, n_bins:2 * n_bins]
     d2 = data[:, 2 * n_bins:3 * n_bins]
     d3 = data[:, 3 * n_bins:4 * n_bins]
     d4 = data[:, 4 * n_bins:]
 
-    plot_feat_hist(a3, "A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
-    # Round to 1 decimal place for floating point errors like 0.300004
-    plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    plot_feat_hist(d2, "D2", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    plot_feat_hist(d3, "D3", "Square root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    plot_feat_hist(d4, "D4", "Cube root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    # plot_feat_hist(a3, "A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
+    # # Round to 1 decimal place for floating point errors like 0.300004
+    # plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    # plot_feat_hist(d2, "D2", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    # plot_feat_hist(d3, "D3", "Square root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    # plot_feat_hist(d4, "D4", "Cube root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+
+    plot_hist_grid(fp_data, n_classes, n_bins=n_bins, n_iter=n_iter)
