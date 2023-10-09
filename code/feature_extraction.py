@@ -167,7 +167,7 @@ def compute_d4_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
 
         volumes.append(volume)
 
-    # Cube root of volume
+    # Cube root of volumecd
     volumes = np.cbrt(volumes)
 
     hist, _ = np.histogram(volumes, bins=n_bins, range=(0, volumes.max()))  # Create histogram
@@ -244,13 +244,13 @@ if __name__ == "__main__":
     n_iter = 1_000
     n_bins = 10
 
-    # Global features
+    ''' Global features '''
     # Surface area of mesh
     # Mesh volume
     # Compactness: (surface_area ** 1.5) / (36 * math.pi * (mesh_volume ** 0.5))
     # Diameter of mesh
 
-    # Shape property features
+    ''' Shape property features '''
     # A3: angle between 3 random vertices
     # D1: distance between barycenter and random vertex
     # D2: distance between 2 random vertices
