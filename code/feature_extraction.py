@@ -1,9 +1,50 @@
 import itertools
 import os
-
+import open3d as o3d
 import numpy as np
+import math
 from pymeshlab import MeshSet
 from tqdm import tqdm
+
+
+
+# Compute the area and volume of a mesh
+def compute_area_volume(fp_mesh):
+    # Load the mesh with open3d
+    mesh = o3d.io.read_triangle_mesh(fp_mesh)
+    mesh.compute_vertex_normals()
+
+    # Compute mesh area and volume
+    area = mesh.get_surface_area()
+    volume = mesh.get_volume()
+
+    return area, volume
+
+
+# Compute compactness of a mesh (based on mesh area and volume)
+def compute_compactness(area, volume):
+    # Calculate compactness
+    compactness = (area ** 1.5) / (36 * math.pi * (volume ** 0.5))
+    return compactness
+
+
+# Compute the diameter of a mesh
+def compute_diameter(fp_mesh):
+    # Load the mesh with open3d
+    mesh = o3d.io.read_triangle_mesh(fp_mesh)
+    vertices = np.array(mesh.vertices)
+
+    min_coords = np.min(vertices, axis=0)
+    max_coords = np.max(vertices, axis=0)
+
+    # Calculate center of the bounding box of mesh
+    center = (min_coords + max_coords) / 2
+
+    # Calculate distance from center to all vertices
+    distances = np.linalg.norm(vertices - center, axis=1)
+    diameter = 2 * np.max(distances)
+
+    return diameter
 
 
 def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
@@ -154,7 +195,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         # Iterate over all mesh files in current subfolder
         for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}"):
             fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
-
+ 
             # Load mesh
             meshset.load_new_mesh(fp_mesh)
             mesh = meshset.current_mesh()
@@ -164,23 +205,33 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
             barycenter = measures["barycenter"]
 
-            # Compute features
+            # Compute global features
+            area, volume = compute_area_volume(fp_mesh)
+            compactness = compute_compactness(area, volume)
+            diameter = compute_diameter(fp_mesh)
+
+            # Store global features as well as filename and category
+            global_features = np.array([filename, category, area, volume, compactness, diameter])
+
+            # Compute shape property features
             a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
             d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
             d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
             d3 = compute_d3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
             d4 = compute_d4_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
 
-            # Add filename, category and features to list
-            shape_features = np.concatenate(([filename, category], a3, d1, d2, d3, d4))
-            all_features.append(shape_features)
+            # Store shape property features
+            shape_features = np.concatenate((a3, d1, d2, d3, d4))
+            
+            # Store all features
+            all_features.append(np.concatenate((global_features, shape_features)))
 
     hists = ","
     for feature in ["a3", "d1", "d2", "d3", "d4"]:
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename,category" + hists[:-1]  # Remove last comma
+    header = "filename, category, surface_area, volume, compactness, diameter" + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
@@ -189,10 +240,17 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data_normalized/"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 0  # len(categories)
+    n_categories = 2  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
+    # Global features
+    # Surface area of mesh
+    # Mesh volume
+    # Compactness: (surface_area ** 1.5) / (36 * math.pi * (mesh_volume ** 0.5))
+    # Diameter of mesh
+
+    # Shape property features
     # A3: angle between 3 random vertices
     # D1: distance between barycenter and random vertex
     # D2: distance between 2 random vertices
