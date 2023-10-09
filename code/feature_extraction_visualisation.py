@@ -20,14 +20,11 @@ def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: lis
     plt.title(f"{feat} histogram ({n_bins} bins, {n_iter} iterations)")
 
     plt.tight_layout()
-    plt.savefig(f"./figures/feat_ex/feat_hist_{feat}.png", dpi=300)
+    plt.savefig(f"./figures/feat_ex/feat_hist_{feat.replace(' ', '_').lower()}.png", dpi=300)
     plt.show()
 
 
-def plot_hist_grid(fp_data, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000) -> None:
-    # Load csv in pandas dataframe
-    df = pd.read_csv(fp_data, delimiter=",")
-
+def plot_hist_grid(df, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000) -> None:
     # Select the n_classes most popular classes
     df = df[df["category"].isin(df["category"].value_counts().index[:n_classes])]
     print(df["category"].value_counts())
@@ -80,19 +77,24 @@ if __name__ == "__main__":
     n_bins = 10
     n_iter = 1_000
     n_classes = 4
+    class_of_interest = "AircraftBuoyant"
 
-    data = np.loadtxt(fp_data, delimiter=",", skiprows=1, usecols=range(2, 52))
-    a3 = data[:, :n_bins]
-    d1 = data[:, n_bins:2 * n_bins]
-    d2 = data[:, 2 * n_bins:3 * n_bins]
-    d3 = data[:, 3 * n_bins:4 * n_bins]
-    d4 = data[:, 4 * n_bins:]
+    # Load csv in pandas dataframe
+    df = pd.read_csv(fp_data, delimiter=",")
 
-    # plot_feat_hist(a3, "A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
-    # # Round to 1 decimal place for floating point errors like 0.300004
-    # plot_feat_hist(d1, "D1", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    # plot_feat_hist(d2, "D2", "Distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    # plot_feat_hist(d3, "D3", "Square root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
-    # plot_feat_hist(d4, "D4", "Cube root distance (unit size)", np.arange(0, 1.1, 0.1).round(1), n_bins=n_bins, n_iter=n_iter)
+    # Plot grid before filtering
+    # plot_hist_grid(df, n_classes, n_bins=n_bins, n_iter=n_iter)
 
-    plot_hist_grid(fp_data, n_classes, n_bins=n_bins, n_iter=n_iter)
+    # Select all rows where the category is equal to the class of interest
+    df_feat = df[df["category"] == class_of_interest]
+
+    # Select all columns that start with "a3_"
+    a3 = df_feat.filter(regex="a3_").to_numpy()
+    plot_feat_hist(a3, f"{class_of_interest} A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
+
+    # Round to 1 decimal place for floating point errors like 0.300004
+    x_range = np.arange(0, 1.1, 0.1).round(1)
+    labels = ["Distance (unit size)", "Distance (unit size)", "Square root distance (unit size)", "Cube root distance (unit size)"]
+    for feat, label in zip(["d1", "d2", "d3", "d4"], labels):
+        data = df_feat.filter(regex=f"{feat}_").to_numpy()
+        plot_feat_hist(data, f"{class_of_interest} {feat.capitalize()}", label, x_range, n_bins=n_bins, n_iter=n_iter)
