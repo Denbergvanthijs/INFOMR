@@ -83,7 +83,7 @@ if __name__ == "__main__":
     df = pd.read_csv(fp_data, delimiter=",")
 
     # Plot grid before filtering
-    # plot_hist_grid(df, n_classes, n_bins=n_bins, n_iter=n_iter)
+    plot_hist_grid(df, n_classes, n_bins=n_bins, n_iter=n_iter)
 
     # Select all rows where the category is equal to the class of interest
     df_feat = df[df["category"] == class_of_interest]
