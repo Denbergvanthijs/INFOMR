@@ -58,7 +58,7 @@ def refine_meshes(fp_data: str, fp_data_out: str = "data_cleaned", n_categories:
 if __name__ == "__main__":
     fp_data = "data"
     fp_data_out = "data_cleaned"
-    n_categories = 10  # len(categories)
+    n_categories = 69  # len(categories)
 
     errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
     print(errors)

@@ -3,6 +3,7 @@ import os
 import open3d as o3d
 import numpy as np
 import math
+from scipy.spatial import ConvexHull
 from pymeshlab import MeshSet
 from tqdm import tqdm
 
@@ -45,6 +46,28 @@ def compute_diameter(fp_mesh):
     diameter = 2 * np.max(distances)
 
     return diameter
+
+
+# Compute convexity of a mesh (mesh volume over convex hull volume)
+def compute_convexity(vertices, mesh_volume):
+    # Calculate convex hull and corresponding volume
+    convex_hull = ConvexHull(vertices)
+    convex_hull_volume = convex_hull.volume
+
+    # Divide mesh volume by convex hull volume
+    convexity = mesh_volume / convex_hull_volume
+    return convexity
+
+
+# Compute eccentricity of a mesh (ratio of largest to smallest eigenvalues of covariance matrix)
+def compute_eccentricity(vertices):
+    # Compute covariance matrix and corresponding eigenvalues
+    cov_matrix = np.cov(vertices, rowvar=False)
+    eigenvalues, _ = np.linalg.eig(cov_matrix)
+
+    # Compute and return eccentricity
+    eccentricity = max(eigenvalues) / min(eigenvalues)
+    return eccentricity
 
 
 def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
@@ -209,9 +232,11 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             area, volume = compute_area_volume(fp_mesh)
             compactness = compute_compactness(area, volume)
             diameter = compute_diameter(fp_mesh)
+            convexity = compute_convexity(vertices, volume)
+            eccentricity = compute_eccentricity(vertices)
 
             # Store global features as well as filename and category
-            global_features = np.array([filename, category, area, volume, compactness, diameter])
+            global_features = np.array([filename, category, area, volume, compactness, diameter, convexity, eccentricity])
 
             # Compute shape property features
             a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
@@ -231,7 +256,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename, category, surface_area, volume, compactness, diameter" + hists[:-1]  # Remove last comma
+    header = "filename, category, surface_area, volume, compactness, diameter, convexity, eccentricity" + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
@@ -248,7 +273,9 @@ if __name__ == "__main__":
     # Surface area of mesh
     # Mesh volume
     # Compactness: (surface_area ** 1.5) / (36 * math.pi * (mesh_volume ** 0.5))
-    # Diameter of mesh
+    # Diameter 
+    # Convexity: mesh volume over convex hul volume
+    # Eccentricity: ratio of largest to smallest eigenvalues of covariance matrix
 
     ''' Shape property features '''
     # A3: angle between 3 random vertices
