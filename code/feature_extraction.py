@@ -256,7 +256,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename, category, surface_area, volume, compactness, diameter, convexity, eccentricity" + hists[:-1]  # Remove last comma
+    header = "filename,category,surface_area,volume,compactness,diameter,convexity,eccentricity" + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
