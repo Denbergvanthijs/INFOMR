@@ -90,18 +90,6 @@ def query(query_path):
     return sorted_meshes
 
 
-'''
-Compute the Earth Mover's distance (EMD) between a given query mesh and all meshes in a given dataset. 
-Create an ordered list of meshes based on calculated EMD values. Visualize the query mesh and a specific mesh 
-from the ordered mesh list.
-
-The mesh list is ordered in ascending order. This means that the mesh with the lowest EMD is located up front, 
-while the mesh with the highest EMD is located at the back.
-
-Specifically:
-- index 0: the best match based on EMD (i.e. the query mesh itself as EMD = 0).
-- index -1: the worst match based on EMD (i.e. mesh with highest EMD).
-'''
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
 def query(query_path):
     features_path = "csvs/features.csv"
