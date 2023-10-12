@@ -1,10 +1,7 @@
-import open3d as o3d
-import csv
 import numpy as np
-import random
 
 
-
+# Compute Manhatten distance between two vectors
 def get_manhattan_distance(vec_a, vec_b, range_min, range_max, normalize=True):
     dist = 0
     for number_a, number_b in zip(vec_a, vec_b):
@@ -16,6 +13,7 @@ def get_manhattan_distance(vec_a, vec_b, range_min, range_max, normalize=True):
     return dist
 
 
+# Compute Euclidian distance between two vectors
 def get_euclidean_distance(vec_a, vec_b, range_min, range_max, normalize=True):
     dist = np.linalg.norm(vec_a - vec_b)
     if normalize:
@@ -25,6 +23,7 @@ def get_euclidean_distance(vec_a, vec_b, range_min, range_max, normalize=True):
     return dist
 
 
+# Compute cosine dissimilarity between two vectors
 def get_cosine_distance(vec_a, vec_b, normalize=True):
     cosine_similarity = np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))    
     dist = 1 - cosine_similarity
@@ -34,6 +33,7 @@ def get_cosine_distance(vec_a, vec_b, normalize=True):
     return dist
 
 
+# Compute Earth Mover's distance (EMD) between two feature vectors (only use if the minimal possible value of a feature is positive (>= 0))
 def get_emd(features_1, features_2):
     i, j = 0, 1
     flow = [[0 for _ in range(len(features_1))] for _ in range(len(features_1))]
