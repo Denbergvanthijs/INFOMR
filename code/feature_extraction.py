@@ -218,7 +218,8 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         # Iterate over all mesh files in current subfolder
         for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}"):
             fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
- 
+            full_filename = f"{category}/{filename}"
+
             # Load mesh
             meshset.load_new_mesh(fp_mesh)
             mesh = meshset.current_mesh()
@@ -236,7 +237,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             eccentricity = compute_eccentricity(vertices)
 
             # Store global features as well as filename and category
-            global_features = np.array([filename, category, area, volume, compactness, diameter, convexity, eccentricity])
+            global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity])
 
             # Compute shape property features
             a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
@@ -264,8 +265,8 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
 if __name__ == "__main__":
     fp_data = "./data_normalized/"
-    fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 2  # len(categories)
+    fp_csv_out = "./csvs/features.csv"
+    n_categories = 4  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
