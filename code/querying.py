@@ -2,6 +2,7 @@
 from distance_functions import get_emd
 import open3d as o3d
 import csv
+import os
 
 import open3d as o3d
 from tqdm import tqdm
@@ -101,7 +102,6 @@ Specifically:
 - index 0: the best match based on EMD (i.e. the query mesh itself as EMD = 0).
 - index -1: the worst match based on EMD (i.e. mesh with highest EMD).
 '''
-<<<<<<< HEAD
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
 def query(query_path):
     features_path = "csvs/features.csv"
@@ -118,15 +118,6 @@ def query(query_path):
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     for category in tqdm(categories):
         fp_cat_in = os.path.join(fp_data, category)  # Input folder
-=======
-def main():
-    # Parameters
-    query_path = "Humanoid/m236.obj"
-    mesh1_path = "Knife/D01119.obj"
-    mesh2_path = "Humanoid/m158.obj"
-    mesh3_path = "Bicycle/D00077.obj"
-    features_path = "csvs/feature_extraction.csv"
->>>>>>> f325e945772612f9871336c8c41755cac80a2242
 
         if not os.path.exists(fp_cat_in):
             print(f"\nThe '{category}' folder does not exist.")
