@@ -1,4 +1,7 @@
 
+import csv
+
+import open3d as o3d
 from distance_functions import get_emd
 import open3d as o3d
 import csv
