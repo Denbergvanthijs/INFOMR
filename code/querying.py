@@ -1,7 +1,8 @@
 
-from distance_functions import get_emd
-import open3d as o3d
 import csv
+
+import open3d as o3d
+from distance_functions import get_emd
 
 
 def get_features(features_path, mesh_path):
@@ -42,14 +43,14 @@ def visualize(meshes):
         mesh_show_wireframe=True
     )
 
-    
+
 def main():
     # Parameters
     query_path = "Humanoid/m236.obj"
     mesh1_path = "Knife/D01119.obj"
     mesh2_path = "Humanoid/m158.obj"
     mesh3_path = "Bicycle/D00077.obj"
-    features_path = "csvs/features.csv"
+    features_path = "csvs/feature_extraction.csv"
 
     meshes = load_meshes([query_path, mesh1_path, mesh2_path, mesh3_path])
     features_query, label1 = get_features(features_path, query_path)

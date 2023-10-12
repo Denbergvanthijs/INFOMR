@@ -1,8 +1,4 @@
-import open3d as o3d
-import csv
 import numpy as np
-import random
-
 
 
 def get_manhattan_distance(vec_a, vec_b, range_min, range_max, normalize=True):
@@ -21,16 +17,16 @@ def get_euclidean_distance(vec_a, vec_b, range_min, range_max, normalize=True):
     if normalize:
         max_dist = np.sqrt(len(vec_a) * ((range_max - range_min)**2))
         dist /= max_dist
-    
+
     return dist
 
 
 def get_cosine_distance(vec_a, vec_b, normalize=True):
-    cosine_similarity = np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))    
+    cosine_similarity = np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
     dist = 1 - cosine_similarity
     if normalize:
         dist /= 2
-    
+
     return dist
 
 
@@ -95,7 +91,7 @@ def get_emd(features_1, features_2):
     for p in range(len(features_1)):
         for q in range(len(features_1)):
             work += abs(p - q) * flow[p][q]
-    
+
     # 'Normalize' by dividing by total flow
     total_flow = 0
     for i in range(len(features_1)):
