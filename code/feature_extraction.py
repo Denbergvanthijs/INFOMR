@@ -1,12 +1,12 @@
 import itertools
-import os
-import open3d as o3d
-import numpy as np
 import math
-from scipy.spatial import ConvexHull
-from pymeshlab import MeshSet
-from tqdm import tqdm
+import os
 
+import numpy as np
+import open3d as o3d
+from pymeshlab import MeshSet
+from scipy.spatial import ConvexHull
+from tqdm import tqdm
 
 
 # Compute the area and volume of a mesh
@@ -17,14 +17,21 @@ def compute_area_volume(fp_mesh):
 
     # Compute mesh area and volume
     area = mesh.get_surface_area()
-    volume = mesh.get_volume()
+
+    if mesh.is_watertight():
+        volume = mesh.get_volume()
+    else:
+        volume = -1
 
     return area, volume
 
 
 # Compute compactness of a mesh (based on mesh area and volume)
 def compute_compactness(area, volume):
-    # Calculate compactness
+    # Return -1 if volume is invalid due to previous error
+    if volume == -1:
+        return -1
+
     compactness = (area ** 1.5) / (36 * math.pi * (volume ** 0.5))
     return compactness
 
@@ -50,6 +57,10 @@ def compute_diameter(fp_mesh):
 
 # Compute convexity of a mesh (mesh volume over convex hull volume)
 def compute_convexity(vertices, mesh_volume):
+    # Return -1 if there are not enough vertices or not minimal 4 unique x coordinates
+    if vertices.shape[0] < 4 or len(np.unique(vertices[:, 0])) < 4:
+        return -1
+
     # Calculate convex hull and corresponding volume
     convex_hull = ConvexHull(vertices)
     convex_hull_volume = convex_hull.volume
@@ -64,6 +75,9 @@ def compute_eccentricity(vertices):
     # Compute covariance matrix and corresponding eigenvalues
     cov_matrix = np.cov(vertices, rowvar=False)
     eigenvalues, _ = np.linalg.eig(cov_matrix)
+
+    if min(eigenvalues) == 0:  # Avoid division by zero
+        return -1
 
     # Compute and return eccentricity
     eccentricity = max(eigenvalues) / min(eigenvalues)
@@ -248,7 +262,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
             # Store shape property features
             shape_features = np.concatenate((a3, d1, d2, d3, d4))
-            
+
             # Store all features
             all_features.append(np.concatenate((global_features, shape_features)))
 
@@ -266,7 +280,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data_normalized/"
     fp_csv_out = "./csvs/features.csv"
-    n_categories = 4  # len(categories)
+    n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
@@ -274,7 +288,7 @@ if __name__ == "__main__":
     # Surface area of mesh
     # Mesh volume
     # Compactness: (surface_area ** 1.5) / (36 * math.pi * (mesh_volume ** 0.5))
-    # Diameter 
+    # Diameter
     # Convexity: mesh volume over convex hul volume
     # Eccentricity: ratio of largest to smallest eigenvalues of covariance matrix
 
