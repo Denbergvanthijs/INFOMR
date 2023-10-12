@@ -279,7 +279,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
 if __name__ == "__main__":
     fp_data = "./data_normalized/"
-    fp_csv_out = "./csvs/features.csv"
+    fp_csv_out = "./csvs/feature_extraction.csv"
     n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
