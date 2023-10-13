@@ -54,7 +54,7 @@ def visualize(meshpaths):
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
-def query(query_path, features_path, fp_data) -> list:
+def query(features_query, features_path, fp_data) -> list:
     '''Compute the Earth Mover's distance (EMD) between a given query mesh and all meshes in a given dataset. 
     Create an ordered list of meshes based on calculated EMD values. Visualize the query mesh and a specific mesh 
     from the ordered mesh list.
@@ -66,9 +66,6 @@ def query(query_path, features_path, fp_data) -> list:
     - index 0: the best match based on EMD (i.e. the query mesh itself as EMD = 0).
     - index -1: the worst match based on EMD (i.e. mesh with highest EMD).
     '''
-    if not os.path.exists(query_path):
-        raise Exception(f"\nThe '{query_path}' file does not exist.")
-
     if not os.path.exists(features_path):
         raise Exception(f"\nThe '{features_path}' file does not exist.")
 
@@ -78,13 +75,8 @@ def query(query_path, features_path, fp_data) -> list:
     # Create dict to store pairs of meshes and their Eath Mover's distance to query mesh
     emd_dict = {}
 
-    # Load features of query mesh
-    features_query = get_features(features_path, query_path)
-    print(features_query)
-
-    categories = next(os.walk(fp_data))[1]
-
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
+    categories = next(os.walk(fp_data))[1]
     for category in tqdm(categories):
         fp_cat_in = os.path.join(fp_data, category)  # Input folder
 
@@ -121,8 +113,12 @@ if __name__ == "__main__":
     features_path = "./csvs/feature_extraction.csv"
     fp_data = "./data_normalized/"
 
+    # Load features of query mesh
+    features_query = get_features(features_path, query_path)
+    print(f"Total of {len(features_query)} features extracted from query mesh.")
+
     # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-    returned_meshes = query(query_path, features_path, fp_data)
+    returned_meshes = query(features_query, features_path, fp_data)
     print(f"Number of returned meshes: {len(returned_meshes)}")
     print(f"Best match: {returned_meshes[0]}")
 
