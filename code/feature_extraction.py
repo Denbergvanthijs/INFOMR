@@ -213,9 +213,41 @@ def compute_d4_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
     return hist
 
 
-def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
+def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_iter: int = 1_000, n_bins: int = 10) -> None:
     meshset = MeshSet()
+    meshset.load_new_mesh(fp_mesh)
+    mesh = meshset.current_mesh()
 
+    # Get data
+    vertices = mesh.vertex_matrix()
+    measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
+    barycenter = measures["barycenter"]
+
+    # Compute global features
+    area, volume = compute_area_volume(fp_mesh)
+    compactness = compute_compactness(area, volume)
+    diameter = compute_diameter(fp_mesh)
+    convexity = compute_convexity(vertices, volume)
+    eccentricity = compute_eccentricity(vertices)
+
+    # Store global features as well as filename and category
+    global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity])
+
+    # Compute shape property features
+    a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
+    d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
+    d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
+    d3 = compute_d3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
+    d4 = compute_d4_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
+
+    # Store shape property features
+    shape_features = np.concatenate((a3, d1, d2, d3, d4))
+
+    # Store all features
+    return np.concatenate((global_features, shape_features))
+
+
+def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
     categories = next(os.walk(fp_data))[1]
     n_categories = len(categories) if not n_categories else n_categories
     print(f"Reading {n_categories} categories from {fp_data}...")
@@ -234,37 +266,9 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
             full_filename = f"{category}/{filename}"
 
-            # Load mesh
-            meshset.load_new_mesh(fp_mesh)
-            mesh = meshset.current_mesh()
-
-            # Get data
-            vertices = mesh.vertex_matrix()
-            measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
-            barycenter = measures["barycenter"]
-
-            # Compute global features
-            area, volume = compute_area_volume(fp_mesh)
-            compactness = compute_compactness(area, volume)
-            diameter = compute_diameter(fp_mesh)
-            convexity = compute_convexity(vertices, volume)
-            eccentricity = compute_eccentricity(vertices)
-
-            # Store global features as well as filename and category
-            global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity])
-
-            # Compute shape property features
-            a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
-            d1 = compute_d1_hist(vertices, barycenter, n_iter=n_iter, n_bins=n_bins).round(3)  # for floating point errors like 0.300004
-            d2 = compute_d2_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
-            d3 = compute_d3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
-            d4 = compute_d4_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)
-
-            # Store shape property features
-            shape_features = np.concatenate((a3, d1, d2, d3, d4))
-
-            # Store all features
-            all_features.append(np.concatenate((global_features, shape_features)))
+            # Calculate features of current mesh
+            mesh_features = calculate_mesh_features(fp_mesh, full_filename, category, n_iter=n_iter, n_bins=n_bins)
+            all_features.append(mesh_features)
 
     hists = ","
     for feature in ["a3", "d1", "d2", "d3", "d4"]:
