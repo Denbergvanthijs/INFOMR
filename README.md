@@ -29,6 +29,10 @@ python ./code/meshViewer.py --mesh_path ./data_cleaned_/AircraftBuoyant/m1337.ob
 python ./code/meshViewer.py --mesh_path ./data_normalized/AircraftBuoyant/m1337.obj --visualization_method wired
 ```
 
+## Screenshots
+
+![A screenshot of the front-end](figures/frontend.png)
+
 ## Resources
 
 - [The assignment](https://webspace.science.uu.nl/~telea001/MR/Assignment)
