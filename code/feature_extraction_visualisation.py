@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from tqdm.contrib import tzip
 
 
-def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: list, n_bins: int = 10, n_iter: int = 1_000) -> None:
+def plot_feat_hist(data: np.ndarray, title: str, feat: str, x_label: str, x_ticks_label: list, n_bins: int = 10) -> None:
     # Plot all linecharts on top of each other
     fig, ax = plt.subplots()
 
@@ -17,11 +18,12 @@ def plot_feat_hist(data: np.ndarray, feat: str, x_label: str, x_ticks_label: lis
     plt.xlabel(x_label)
     plt.ylabel("Frequency")
     plt.xlim(0, n_bins)
-    plt.title(f"{feat} histogram ({n_bins} bins, {n_iter} iterations)")
+    plt.ylim(0, None)
+    plt.title(title)
 
     plt.tight_layout()
     plt.savefig(f"./figures/feat_ex/feat_hist_{feat.replace(' ', '_').lower()}.png", dpi=300)
-    plt.show()
+    # plt.show()
 
 
 def plot_hist_grid(df, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000) -> None:
@@ -77,7 +79,6 @@ if __name__ == "__main__":
     n_bins = 10
     n_iter = 1_000
     n_classes = 4
-    class_of_interest = "AircraftBuoyant"
 
     # Load csv in pandas dataframe
     df = pd.read_csv(fp_data, delimiter=",")
@@ -85,16 +86,12 @@ if __name__ == "__main__":
     # Plot grid before filtering
     plot_hist_grid(df, n_classes, n_bins=n_bins, n_iter=n_iter)
 
-    # Select all rows where the category is equal to the class of interest
-    df_feat = df[df["category"] == class_of_interest]
-
-    # Select all columns that start with "a3_"
-    a3 = df_feat.filter(regex="a3_").to_numpy()
-    plot_feat_hist(a3, f"{class_of_interest} A3", "Angle (degrees)", range(0, 181, 18), n_bins=n_bins, n_iter=n_iter)
-
     # Round to 1 decimal place for floating point errors like 0.300004
-    x_range = np.arange(0, 1.1, 0.1).round(1)
-    labels = ["Distance (unit size)", "Distance (unit size)", "Square root distance (unit size)", "Cube root distance (unit size)"]
-    for feat, label in zip(["d1", "d2", "d3", "d4"], labels):
-        data = df_feat.filter(regex=f"{feat}_").to_numpy()
-        plot_feat_hist(data, f"{class_of_interest} {feat.capitalize()}", label, x_range, n_bins=n_bins, n_iter=n_iter)
+    x_ranges = [range(0, 181, 18)] + 4 * [np.arange(0, 1.1, 0.1).round(1)]
+    features = ["a3", "d1", "d2", "d3", "d4"]
+    labels = ["Angle (degrees)", "Distance (unit size)", "Distance (unit size)",
+              "Square root distance (unit size)", "Cube root distance (unit size)"]
+    for feat, label, x_range in tzip(features, labels, x_ranges):
+        data = df.filter(regex=f"{feat}_").to_numpy()
+        title = f"{feat.upper()} histogram of all classes combined ({n_bins} bins, {n_iter} iterations)"
+        plot_feat_hist(data, title, feat, label, x_range, n_bins=n_bins)
