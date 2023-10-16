@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 from feature_extraction import calculate_mesh_features
-from querying import query
+from querying import query, return_dist_func
 
 TOP_N = 5
 n_iter = 1_000
@@ -30,6 +30,9 @@ st.set_page_config(page_title="Rorschach CBSR",
 # Sidebar
 st.sidebar.title("Configuration")
 TOP_N = st.sidebar.slider("Number of similar meshes to retrieve:", min_value=1, max_value=10, value=TOP_N, step=1)
+distance_func = st.sidebar.selectbox("Distance function:", ("EMD", "Manhattan", "Euclidean", "Cosine"))
+distance_func = return_dist_func(distance_func)
+
 uploaded_file = st.sidebar.file_uploader("Choose an object...", type=[".obj",])
 
 # Main page
@@ -60,8 +63,8 @@ if uploaded_file is not None:
 
     st.subheader(f"Top {TOP_N} similar meshes:")
     with st.spinner("Retrieving similar meshes..."):
-        # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        retrieved_meshes, retrieved_scores = query(features_query, df_features, fp_data)
+        # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
+        retrieved_meshes, retrieved_scores = query(features_query, df_features, fp_data, distance_function=distance_func)
         st.write(f"Total of {len(retrieved_meshes)} meshes retrieved. Closest distance: {retrieved_scores[0]:.4f}")
 
         # Split list into category and filename
@@ -71,7 +74,7 @@ if uploaded_file is not None:
         df_returned = pd.DataFrame({"Position": range(1, len(category)+1),
                                     "Category": category,
                                     "Filename": filename,
-                                    "EMD": retrieved_scores})
+                                    "Distance": retrieved_scores})
         df_returned.set_index("Position", inplace=True)
         df_returned = df_returned.head(TOP_N)
         print(df_returned)
@@ -84,9 +87,9 @@ if uploaded_file is not None:
         df_features.reset_index(inplace=True)
         # Add column with position
         df_features["Position"] = df_returned.index.tolist()
-        # Add column with EMD
-        df_features["EMD"] = df_returned["EMD"].tolist()
-        # Move EMD column to the front
+        # Add column with the distance
+        df_features["Distance"] = df_returned["Distance"].tolist()
+        # Move distance column to the front
         cols = df_features.columns.tolist()
         cols = cols[-1:] + cols[:-1]
         df_features = df_features[cols]
@@ -95,7 +98,6 @@ if uploaded_file is not None:
         # Display dataframe
         st.dataframe(df_features)
 
-    st.sidebar.divider()
     # Add button for each returned mesh to display it
     st.sidebar.subheader("Display meshes:")
     st.sidebar.write("Click on the button to display the mesh.")

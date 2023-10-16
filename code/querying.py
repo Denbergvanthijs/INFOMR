@@ -2,7 +2,8 @@ import os
 
 import open3d as o3d
 import pandas as pd
-from distance_functions import get_emd
+from distance_functions import (get_cosine_distance, get_emd,
+                                get_euclidean_distance, get_manhattan_distance)
 from tqdm import tqdm
 
 
@@ -48,7 +49,7 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
-def query(features_query, df_features, fp_data) -> list:
+def query(features_query, df_features, fp_data, distance_function=get_emd) -> list:
     '''Compute the Earth Mover's distance (EMD) between a given query mesh and all meshes in a given dataset. 
     Create an ordered list of meshes based on calculated EMD values. Visualize the query mesh and a specific mesh 
     from the ordered mesh list.
@@ -68,7 +69,7 @@ def query(features_query, df_features, fp_data) -> list:
         raise Exception(f"The query mesh features contain negative values. EMD cannot be computed.")
 
     # Create dict to store pairs of meshes and their Eath Mover's distance to query mesh
-    emd_dict = {}
+    distance_dict = {}
 
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     categories = next(os.walk(fp_data))[1]
@@ -98,15 +99,24 @@ def query(features_query, df_features, fp_data) -> list:
                 continue
 
             # If features of current mesh are present, compute and store EMD to query mesh
-            emd_dict[mesh_path] = get_emd(features_query, features_mesh)
+            distance_dict[mesh_path] = distance_function(features_query, features_mesh)
 
-    # Sort the mesh filenames based on EMD
-    sorted_emd_dict = sorted(emd_dict.items(), key=lambda item: item[1], reverse=False)
+    # Sort the mesh filenames based on the distance function
+    sorted_distance_dict = sorted(distance_dict.items(), key=lambda item: item[1], reverse=False)
 
     # Store the sorted filenames
-    sorted_meshes, sorted_scores = zip(*sorted_emd_dict)
+    sorted_meshes, sorted_scores = zip(*sorted_distance_dict)
 
     return sorted_meshes, sorted_scores
+
+
+def return_dist_func(selector: str):
+    selector_dict = {"EMD": get_emd,
+                     "Manhattan": get_manhattan_distance,
+                     "Euclidean": get_euclidean_distance,
+                     "Cosine": get_cosine_distance}
+
+    return selector_dict[selector]
 
 
 if __name__ == "__main__":
@@ -114,6 +124,7 @@ if __name__ == "__main__":
     fp_query = "./data/Bird/D00089.obj"
     fp_features = "./csvs/feature_extraction.csv"
     fp_data = "./data_normalized/"
+    distance_function = get_emd
 
     df_features = pd.read_csv(fp_features)
     # Preprocess filename column to only keep the filename
@@ -127,7 +138,7 @@ if __name__ == "__main__":
     print(f"Total of {len(features_query)} features extracted from query mesh.")
 
     # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-    returned_meshes, sorted_scores = query(features_query, df_features, fp_data)
+    returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
     print(f"Number of returned meshes: {len(returned_meshes)}")
     print(f"Best match: {returned_meshes[0]} with EMD: {sorted_scores[0]:3f}")
 

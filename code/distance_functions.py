@@ -2,10 +2,12 @@ import numpy as np
 
 
 # Compute Manhatten distance between two vectors
-def get_manhattan_distance(vec_a, vec_b, range_min, range_max, normalize=True):
-    dist = 0
-    for number_a, number_b in zip(vec_a, vec_b):
-        dist += abs(number_a - number_b)
+def get_manhattan_distance(vec_a, vec_b, range_min: int = None, range_max: int = None, normalize=False):
+    vec_a = np.array(vec_a)
+    vec_b = np.array(vec_b)
+
+    dist = np.abs(vec_a - vec_b).sum()
+
     if normalize:
         max_dist = (range_max - range_min) * len(vec_a)
         dist /= max_dist
@@ -14,8 +16,12 @@ def get_manhattan_distance(vec_a, vec_b, range_min, range_max, normalize=True):
 
 
 # Compute Euclidian distance between two vectors
-def get_euclidean_distance(vec_a, vec_b, range_min, range_max, normalize=True):
+def get_euclidean_distance(vec_a, vec_b, range_min: int = None, range_max: int = None, normalize=False):
+    vec_a = np.array(vec_a)
+    vec_b = np.array(vec_b)
+
     dist = np.linalg.norm(vec_a - vec_b)
+
     if normalize:
         max_dist = np.sqrt(len(vec_a) * ((range_max - range_min)**2))
         dist /= max_dist
@@ -24,9 +30,10 @@ def get_euclidean_distance(vec_a, vec_b, range_min, range_max, normalize=True):
 
 
 # Compute cosine dissimilarity between two vectors
-def get_cosine_distance(vec_a, vec_b, normalize=True):
+def get_cosine_distance(vec_a, vec_b, normalize=False):
     cosine_similarity = np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
     dist = 1 - cosine_similarity
+
     if normalize:
         dist /= 2
 
