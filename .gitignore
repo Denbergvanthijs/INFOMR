@@ -4,6 +4,7 @@ data_normalized/*
 data_cleaned/*
 screenshots/*
 csvs/*
+temp_mesh.obj
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
