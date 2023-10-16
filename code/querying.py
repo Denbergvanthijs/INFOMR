@@ -1,4 +1,3 @@
-import csv
 import os
 
 import open3d as o3d
@@ -7,8 +6,9 @@ from distance_functions import get_emd
 from tqdm import tqdm
 
 
-# Obtain features from CSV file
-def get_features(df_features, fp_mesh):
+def get_features(df_features, fp_mesh) -> list:
+    # Obtain features from dataframe based on filename and category
+
     if not os.path.exists(fp_mesh):
         raise Exception(f"\nThe '{fp_mesh}' file does not exist.")
 
@@ -31,8 +31,9 @@ def get_features(df_features, fp_mesh):
     return df_temp.values.tolist()[0]  # Return first row as list
 
 
-# Function for loading and visualizing meshes
-def visualize(fp_meshes):
+def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> None:
+    # Function for loading and visualizing meshes
+
     # Load meshes
     meshes = []
     for i, fp_mesh in enumerate(fp_meshes):
@@ -43,10 +44,7 @@ def visualize(fp_meshes):
         mesh.translate((i, 0, 0))
         meshes.append(mesh)
 
-    o3d.visualization.draw_geometries(meshes,
-                                      width=1280,
-                                      height=720,
-                                      mesh_show_wireframe=True)
+    o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
