@@ -104,9 +104,9 @@ def query(features_query, df_features, fp_data) -> list:
     sorted_emd_dict = sorted(emd_dict.items(), key=lambda item: item[1], reverse=False)
 
     # Store the sorted filenames
-    sorted_meshes = [item[0] for item in sorted_emd_dict]
+    sorted_meshes, sorted_scores = zip(*sorted_emd_dict)
 
-    return sorted_meshes
+    return sorted_meshes, sorted_scores
 
 
 if __name__ == "__main__":
@@ -127,9 +127,9 @@ if __name__ == "__main__":
     print(f"Total of {len(features_query)} features extracted from query mesh.")
 
     # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-    returned_meshes = query(features_query, df_features, fp_data)
+    returned_meshes, sorted_scores = query(features_query, df_features, fp_data)
     print(f"Number of returned meshes: {len(returned_meshes)}")
-    print(f"Best match: {returned_meshes[0]}")
+    print(f"Best match: {returned_meshes[0]} with EMD: {sorted_scores[0]:3f}")
 
     # Visualize query mesh and desired mesh from returned mesh list (index 0: best match, index -1: worst match)
     meshes_to_visualize = [fp_query, returned_meshes[0]]

@@ -60,13 +60,17 @@ if uploaded_file is not None:
     st.subheader(f"Top {TOP_N} similar meshes:")
     with st.spinner("Retrieving similar meshes..."):
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        returned_meshes = query(features_query, df_features, fp_data)
+        retrieved_meshes, retrieved_scores = query(features_query, df_features, fp_data)
+        st.write(f"Total of {len(retrieved_meshes)} meshes retrieved. Closest distance: {retrieved_scores[0]:.4f}")
 
         # Split list into category and filename
-        category, filename = zip(*[mesh.split("/")[-2:] for mesh in returned_meshes])
+        category, filename = zip(*[mesh.split("/")[-2:] for mesh in retrieved_meshes])
 
         # Save to dataframe
-        df_returned = pd.DataFrame({"Position": range(1, len(category)+1), "Category": category, "Filename": filename})
+        df_returned = pd.DataFrame({"Position": range(1, len(category)+1),
+                                    "Category": category,
+                                    "Filename": filename,
+                                    "EMD": retrieved_scores})
         df_returned.set_index("Position", inplace=True)
         df_returned = df_returned.head(TOP_N)
         print(df_returned)
@@ -79,6 +83,12 @@ if uploaded_file is not None:
         df_features.reset_index(inplace=True)
         # Add column with position
         df_features["Position"] = df_returned.index.tolist()
+        # Add column with EMD
+        df_features["EMD"] = df_returned["EMD"].tolist()
+        # Move EMD column to the front
+        cols = df_features.columns.tolist()
+        cols = cols[-1:] + cols[:-1]
+        df_features = df_features[cols]
         # Set new index
         df_features.set_index("Position", inplace=True)
         # Display dataframe
