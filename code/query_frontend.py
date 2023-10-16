@@ -60,7 +60,7 @@ if uploaded_file is not None:
     st.subheader(f"Top {TOP_N} similar meshes:")
     with st.spinner("Retrieving similar meshes..."):
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        returned_meshes = query(features_query, features_path, fp_data)
+        returned_meshes = query(features_query, df_features, fp_data)
 
         # Split list into category and filename
         category, filename = zip(*[mesh.split("/")[-2:] for mesh in returned_meshes])
