@@ -27,13 +27,14 @@ st.set_page_config(page_title="Rorschach CBSR",
                    layout="wide",
                    initial_sidebar_state="expanded")
 
+# Sidebar
+st.sidebar.title("Configuration")
+TOP_N = st.sidebar.slider("Number of similar meshes to retrieve:", min_value=1, max_value=10, value=TOP_N, step=1)
+uploaded_file = st.sidebar.file_uploader("Choose an object...", type=[".obj",])
+
 # Main page
 st.title("Rorschach Content-Based Shape Retrieval System")
 st.write(f"Upload a shape. The {TOP_N} most similar shapes will be shown below.")
-
-# Sidebar
-st.sidebar.title("Configuration")
-uploaded_file = st.sidebar.file_uploader("Choose an object...", type=[".obj",])
 
 
 if uploaded_file is not None:
