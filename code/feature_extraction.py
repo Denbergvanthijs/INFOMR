@@ -34,6 +34,9 @@ def compute_compactness(area, volume):
 
 # Compute the diameter of a mesh
 def compute_diameter(vertices, mesh):
+
+    # Initially calculated diameter based on manually calculated center (based on max and min vertices)
+
     # Obtain center coordinates of mesh
     center = mesh.get_center()
 
