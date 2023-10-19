@@ -84,6 +84,23 @@ def compute_eccentricity(vertices):
     return eccentricity
 
 
+# Compute 3D rectangularity of mesh (shape volume divided by OBB volume)
+def compute_rectangularity(mesh_path, mesh_volume):
+    mesh = o3d.io.read_triangle_mesh(mesh_path)
+    mesh.compute_vertex_normals()
+
+    # Obtain oriented bounding box (OBB)
+    obb = o3d.geometry.OrientedBoundingBox(mesh)
+    obb = obb.get_oriented_bounding_box()
+
+    # Obtain OBB volume
+    obb_volume = obb.volume()
+
+    # Calculate 3D rectangularity based on mesh volume and OBB volume
+    rectangularity = mesh_volume / obb_volume
+    return rectangularity
+
+
 def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
     # Based on: https://stackoverflow.com/a/35178910/10603874
     v2v1 = v1 - v2  # Normalized vectors
@@ -229,9 +246,10 @@ def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_i
     diameter = compute_diameter(fp_mesh)
     convexity = compute_convexity(vertices, volume)
     eccentricity = compute_eccentricity(vertices)
+    rectangularity = compute_rectangularity(fp_mesh, volume)
 
     # Store global features as well as filename and category
-    global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity])
+    global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity, rectangularity])
 
     # Compute shape property features
     a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
@@ -275,16 +293,16 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename,category,surface_area,volume,compactness,diameter,convexity,eccentricity" + hists[:-1]  # Remove last comma
+    header = "filename,category,surface_area,volume,compactness,diameter,convexity,eccentricity,rectangularity" + hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
 
 
 if __name__ == "__main__":
-    fp_data = "./data_normalized/"
+    fp_data = "./data"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 0  # len(categories)
+    n_categories = 3  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
