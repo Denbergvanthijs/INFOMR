@@ -48,8 +48,7 @@ def visualize(mesh_path: str, visualization_method: str, width: int = 1280, heig
     window_name = f"RorschachViz - Visualized mesh: {mesh_path}"
 
     # Draw cartesian frame of reference
-    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
-    size=1)
+    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
     mesh_frame.translate([0,0,0])
 
     # Visualize the mesh

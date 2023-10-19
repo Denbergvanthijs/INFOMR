@@ -10,11 +10,7 @@ from tqdm import tqdm
 
 
 # Compute the area and volume of a mesh
-def compute_area_volume(fp_mesh):
-    # Load the mesh with open3d
-    mesh = o3d.io.read_triangle_mesh(fp_mesh)
-    mesh.compute_vertex_normals()
-
+def compute_area_volume(mesh):
     # Compute mesh area and volume
     area = mesh.get_surface_area()
 
@@ -37,26 +33,20 @@ def compute_compactness(area, volume):
 
 
 # Compute the diameter of a mesh
-def compute_diameter(fp_mesh):
-    # Load the mesh with open3d
-    mesh = o3d.io.read_triangle_mesh(fp_mesh)
-    vertices = np.array(mesh.vertices)
-
-    min_coords = np.min(vertices, axis=0)
-    max_coords = np.max(vertices, axis=0)
-
-    # Calculate center of the bounding box of mesh
-    center = (min_coords + max_coords) / 2
+def compute_diameter(vertices, mesh):
+    # Obtain center coordinates of mesh
+    center = mesh.get_center()
 
     # Calculate distance from center to all vertices
     distances = np.linalg.norm(vertices - center, axis=1)
-    diameter = 2 * np.max(distances)
 
+    # Calculate diameter as twice the distance of center to furthest vertice
+    diameter = 2 * np.max(distances)
     return diameter
 
 
-# Compute convexity of a mesh (mesh volume over convex hull volume)
-def compute_convexity(vertices, mesh_volume):
+# Compute convexity of a mesh (shape volume over convex hull volume)
+def compute_convexity(vertices, shape_volume):
     # Return -1 if there are not enough vertices or not minimal 4 unique x coordinates
     if vertices.shape[0] < 4 or len(np.unique(vertices[:, 0])) < 4:
         return -1
@@ -66,7 +56,7 @@ def compute_convexity(vertices, mesh_volume):
     convex_hull_volume = convex_hull.volume
 
     # Divide mesh volume by convex hull volume
-    convexity = mesh_volume / convex_hull_volume
+    convexity = shape_volume / convex_hull_volume
     return convexity
 
 
@@ -85,21 +75,16 @@ def compute_eccentricity(vertices):
 
 
 # Compute 3D rectangularity of mesh (shape volume divided by OBB volume)
-def compute_rectangularity(mesh_path, mesh_volume):
-    # mesh = o3d.io.read_triangle_mesh(mesh_path)
-    # mesh.compute_vertex_normals()
+def compute_rectangularity(mesh, shape_volume):
+    # Obtain oriented bounding box (OBB)
+    obb = mesh.get_oriented_bounding_box()
 
-    # # Obtain oriented bounding box (OBB)
-    # obb = o3d.geometry.OrientedBoundingBox(mesh)
-    # obb = obb.get_oriented_bounding_box()
+    # Obtain OBB volume
+    obb_volume = obb.volume()
 
-    # # Obtain OBB volume
-    # obb_volume = obb.volume()
-
-    # # Calculate 3D rectangularity based on mesh volume and OBB volume
-    # rectangularity = mesh_volume / obb_volume
-    # return rectangularity
-    return 1
+    # Compute rectangularity
+    rectangularity = shape_volume / obb_volume
+    return rectangularity
 
 
 def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
@@ -232,22 +217,27 @@ def compute_d4_hist(vertices: np.ndarray, n_iter: int = 1_000, n_bins: int = 10)
 
 
 def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_iter: int = 1_000, n_bins: int = 10) -> None:
+    # Load mesh with pymeshlab
     meshset = MeshSet()
     meshset.load_new_mesh(fp_mesh)
-    mesh = meshset.current_mesh()
+    mesh_py = meshset.current_mesh()
+
+    # Load mesh with open3d
+    mesh_o3d = o3d.io.read_triangle_mesh(fp_mesh)
+    mesh_o3d.compute_vertex_normals()
 
     # Get data
-    vertices = mesh.vertex_matrix()
+    vertices = mesh_py.vertex_matrix()
     measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
     barycenter = measures["barycenter"]
 
     # Compute global features
-    area, volume = compute_area_volume(fp_mesh)
+    area, volume = compute_area_volume(mesh_o3d)
     compactness = compute_compactness(area, volume)
-    diameter = compute_diameter(fp_mesh)
+    diameter = compute_diameter(vertices, mesh_o3d)
     convexity = compute_convexity(vertices, volume)
     eccentricity = compute_eccentricity(vertices)
-    rectangularity = compute_rectangularity(fp_mesh, volume)
+    rectangularity = compute_rectangularity(mesh_o3d, volume)
 
     # Store global features as well as filename and category
     global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity, rectangularity])
@@ -303,7 +293,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 69  # len(categories)
+    n_categories = 3  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
