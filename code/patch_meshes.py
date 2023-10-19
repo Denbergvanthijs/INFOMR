@@ -62,3 +62,5 @@ if __name__ == "__main__":
 
     errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
     print(errors)
+
+    # Patching and cleaning meshes of entire dataset takes 1 hour 13 minutes (Riemer)

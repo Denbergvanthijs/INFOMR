@@ -86,19 +86,20 @@ def compute_eccentricity(vertices):
 
 # Compute 3D rectangularity of mesh (shape volume divided by OBB volume)
 def compute_rectangularity(mesh_path, mesh_volume):
-    mesh = o3d.io.read_triangle_mesh(mesh_path)
-    mesh.compute_vertex_normals()
+    # mesh = o3d.io.read_triangle_mesh(mesh_path)
+    # mesh.compute_vertex_normals()
 
-    # Obtain oriented bounding box (OBB)
-    obb = o3d.geometry.OrientedBoundingBox(mesh)
-    obb = obb.get_oriented_bounding_box()
+    # # Obtain oriented bounding box (OBB)
+    # obb = o3d.geometry.OrientedBoundingBox(mesh)
+    # obb = obb.get_oriented_bounding_box()
 
-    # Obtain OBB volume
-    obb_volume = obb.volume()
+    # # Obtain OBB volume
+    # obb_volume = obb.volume()
 
-    # Calculate 3D rectangularity based on mesh volume and OBB volume
-    rectangularity = mesh_volume / obb_volume
-    return rectangularity
+    # # Calculate 3D rectangularity based on mesh volume and OBB volume
+    # rectangularity = mesh_volume / obb_volume
+    # return rectangularity
+    return 1
 
 
 def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
@@ -302,7 +303,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 3  # len(categories)
+    n_categories = 69  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
@@ -322,3 +323,5 @@ if __name__ == "__main__":
     # D4: cube root of volume of tetrahedron formed by 4 random vertices
 
     extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
+
+    # Complete feature extraction takes 30 minutes 45 seconds (Riemer)

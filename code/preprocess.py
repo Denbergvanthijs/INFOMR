@@ -332,3 +332,5 @@ if __name__ == "__main__":
         # Print average shape
         n_vertices, n_faces = avg_shape(mesh_info)  # 5609 vertices, 10691 faces
         # print(f"Average shape: {n_vertices:_.0f} vertices, {n_faces:_.0f} faces")
+
+        # Full preprocessing (normalization) takes 6 minutes 17 seconds (Riemer)
