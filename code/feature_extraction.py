@@ -296,7 +296,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 3  # len(categories)
+    n_categories = 69  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
@@ -317,4 +317,4 @@ if __name__ == "__main__":
 
     extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
 
-    # Complete feature extraction takes 30 minutes 45 seconds (Riemer)
+    # Complete feature extraction takes 30 minutes 45 seconds (Riemer), 29 minutes 20 seconds after adjustments (diameter etc.)
