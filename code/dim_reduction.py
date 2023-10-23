@@ -6,56 +6,27 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 
-def get_all_features(features_path, exclude=None):
-    count = 0
-    total_features = []
-    labels = []
-    paths = []
-    with open(features_path, newline='') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        
-        for i, row in enumerate(csv_reader):
-            if i == 0:
-                continue # Skip header row
-            # Skip every 10 rows after each row
-            # if i % 10 == 0:
-            #     continue
-            filepath = row[0]
-            if exclude and filepath == exclude:
-                continue # Exclude shape from returned features list if specified
-            label = row.pop(1)
-            row.pop(0)
-            features = [float(feature.replace(" ", "")) for feature in row if feature != " "]
-            total_features.append(features)
-            labels.append(label)
-            paths.append(filepath)
-    
-    return np.array(total_features), labels
+def get_features(features_path):
+    mesh_paths = []
+    categories = []
+    features = []
 
+    with open(features_path, newline='') as file:
+        csv_reader = csv.reader(file)
 
-# def get_all_features(features_path):
-#     df = pd.read_csv(features_path)
+        # Skip the first row (header)
+        next(csv_reader)
 
-#     # Skip the first column and row (header)
-#     df = df.iloc[:, 1:]
-#     df = df[1:]
+        for row in csv_reader:
+            if len(row) >= 1:
+                # First element is the mesh path
+                mesh_paths.append(row[0])
+                # Second element is the category label (Humanoid, Vase, etc.)
+                categories.append(row[1])
+                # The remainder of the row are the features (excluding 'volume' and 'compactness' for now)
+                features.append(row[2:3] + row[5:])
 
-#     # Create an array to store features and category labels
-#     categories = []
-#     features = []
-
-#     # Skip 5 rows after each row and append the data to the features array
-#     for i in range(0, len(df)):
-#         category = df.iloc[i:i+1, 0:1]
-#         print(category)
-#         categories.append(category)
-#         row = df.iloc[i:i+1, 1:]
-#         features.append(row.values)
-#         # Skip 10 meshes after each row
-#         i += 10
-
-#     return features, categories
-
+    return mesh_paths, categories, np.array(features)
 
 
 def main():
@@ -65,23 +36,23 @@ def main():
     tsne_perplexity = 3
 
     # Load feature vectors for db shapes
-    features_total, labels = get_all_features(features_path)
+    mesh_paths, categories, features = get_features(features_path)
+    print(features[0])
 
     # Embed feature vectors in lower-dimensional space using T-distributed Stochastic Neighbor Embedding (t-SNE)
-    features_embedded = TSNE(n_components=tsne_no_components, perplexity=tsne_perplexity).fit_transform(features_total)
+    features_embedded = TSNE(n_components=tsne_no_components, perplexity=tsne_perplexity).fit_transform(features)
 
-    # --- Visualize results --- #
     # Create colors map
     colors_map = {}
     prev_color = 0
-    for label in labels:
+    for label in categories:
         if label not in colors_map.keys():
             colors_map[label] = prev_color + 0.1
             prev_color += 0.3
 
     # Create colors per class
     colors = []
-    for label in labels:
+    for label in categories:
         colors.append(colors_map[label])
     colors = np.array(colors)
 
