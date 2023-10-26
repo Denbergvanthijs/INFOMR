@@ -35,7 +35,7 @@ def main():
     tsne_no_components = 2
     # Perplexity value / Sigma value (should be between 30-50 according to Alex)
     # It accounts for the number of nearest neighbours that needs to be preserved after dim. reduction
-    tsne_perplexity = 40
+    tsne_perplexity = 10
 
     # Load feature vectors for db shapes
     mesh_paths, categories, features = get_features(features_path)

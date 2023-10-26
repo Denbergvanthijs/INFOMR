@@ -33,15 +33,9 @@ def compute_compactness(area, volume):
 
 
 # Compute the diameter of a mesh
-def compute_diameter(vertices, mesh):
-
-    # Initially calculated diameter based on manually calculated center (based on max and min vertices)
-
-    # Obtain center coordinates of mesh
-    center = mesh.get_center()
-
+def compute_diameter(vertices, barycenter):
     # Calculate distance from center to all vertices
-    distances = np.linalg.norm(vertices - center, axis=1)
+    distances = np.linalg.norm(vertices - barycenter, axis=1)
 
     # Calculate diameter as twice the distance of center to furthest vertice
     diameter = 2 * np.max(distances)
@@ -237,7 +231,7 @@ def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_i
     # Compute global features
     area, volume = compute_area_volume(mesh_o3d)
     compactness = compute_compactness(area, volume)
-    diameter = compute_diameter(vertices, mesh_o3d)
+    diameter = compute_diameter(vertices, barycenter)
     convexity = compute_convexity(vertices, volume)
     eccentricity = compute_eccentricity(vertices)
     rectangularity = compute_rectangularity(mesh_o3d, volume)
@@ -296,7 +290,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./csvs/feature_extraction.csv"
-    n_categories = 69  # len(categories)
+    n_categories = 2  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
@@ -307,6 +301,7 @@ if __name__ == "__main__":
     # Diameter
     # Convexity: mesh volume over convex hul volume
     # Eccentricity: ratio of largest to smallest eigenvalues of covariance matrix
+    # Rectangularity
 
     ''' Shape property features '''
     # A3: angle between 3 random vertices
