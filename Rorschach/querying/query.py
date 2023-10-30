@@ -2,9 +2,9 @@ import os
 
 import open3d as o3d
 import pandas as pd
-from distance_functions import (get_cosine_distance, get_emd,
-                                get_euclidean_distance, get_manhattan_distance)
 from tqdm import tqdm
+from code.querying.distance_functions import (get_cosine_distance, get_emd,
+                                get_euclidean_distance, get_manhattan_distance)
 
 
 def get_features(df_features, fp_mesh) -> list:

@@ -1,7 +1,7 @@
 import itertools
 import math
 import os
-
+import pandas as pd
 import numpy as np
 import open3d as o3d
 from pymeshlab import MeshSet
@@ -285,6 +285,15 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
+
+
+    # Fill NA values
+
+    # df = pd.read_csv('csvs/feature_extraction.csv')
+    # df = df.fillna(0)
+
+    # # Save the updated DataFrame back to a CSV file
+    # df.to_csv('csvs/feature_extraction.csv', index=False)
 
 
 if __name__ == "__main__":
