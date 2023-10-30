@@ -2,13 +2,13 @@ import os
 
 import pandas as pd
 import streamlit as st
-from feature_extraction import calculate_mesh_features
-from querying import query, return_dist_func
+from Rorschach.feature_extraction.extraction import calculate_mesh_features
+from Rorschach.querying.query import query, return_dist_func
 
 TOP_N = 5
 n_iter = 1_000
 n_bins = 10
-features_path = "./csvs/feature_extraction.csv"
+features_path = "./Rorschach/feature_extraction/features.csv"
 fp_data = "./data_normalized/"
 
 # Retrieve features from the returned meshes

@@ -31,7 +31,7 @@ def get_features(features_path):
 
 def main():
     # Parameters
-    features_path = "csvs/feature_extraction.csv"
+    features_path = "./Rorschach/feature_extraction/features.csv"
     tsne_no_components = 2
     # Perplexity value / Sigma value (should be between 30-50 according to Alex)
     # It accounts for the number of nearest neighbours that needs to be preserved after dim. reduction

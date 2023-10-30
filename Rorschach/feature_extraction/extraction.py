@@ -289,16 +289,16 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
     # Fill NA values
 
-    # df = pd.read_csv('csvs/feature_extraction.csv')
+    # df = pd.read_csv('./Rorschach/feature_extraction/features.csv')
     # df = df.fillna(0)
 
     # # Save the updated DataFrame back to a CSV file
-    # df.to_csv('csvs/feature_extraction.csv', index=False)
+    # df.to_csv('./Rorschach/feature_extraction/features.csv', index=False)
 
 
 if __name__ == "__main__":
     fp_data = "./data"
-    fp_csv_out = "./csvs/feature_extraction.csv"
+    fp_csv_out = "./Rorschach/feature_extraction/features.csv"
     n_categories = 2  # len(categories)
     n_iter = 1_000
     n_bins = 10

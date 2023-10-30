@@ -1,9 +1,11 @@
 import os
-
+import scipy as sp
 import open3d as o3d
 import pandas as pd
+import csv
+import numpy as np
 from tqdm import tqdm
-from code.querying.distance_functions import (get_cosine_distance, get_emd,
+from Rorschach.querying.distance_functions import (get_cosine_distance, get_emd,
                                 get_euclidean_distance, get_manhattan_distance)
 
 
@@ -20,8 +22,8 @@ def get_features(df_features, fp_mesh) -> list:
     df_temp = df_features[df_features["filename"] == filename]
     df_temp = df_temp[df_temp["category"] == category]
 
-    # Drop filename and category columns
-    df_temp = df_temp.drop(["filename", "category"], axis=1)
+    # Drop filename, category, volume, compactness, convexity, and rectangularity columns
+    df_temp = df_temp.drop(["filename", "category", "volume", "compactness", "convexity", "rectangularity"], axis=1)
     df_temp = df_temp.astype(float)
 
     if df_temp.empty:
@@ -30,6 +32,30 @@ def get_features(df_features, fp_mesh) -> list:
     # TODO: add checking for duplicates
 
     return df_temp.values.tolist()[0]  # Return first row as list
+
+
+def get_all_features(features_path):
+    mesh_paths = []
+    categories = []
+    features = []
+
+    with open(features_path, newline='') as file:
+        csv_reader = csv.reader(file)
+
+        # Skip the first row (header)
+        next(csv_reader)
+
+        for row in csv_reader:
+            if len(row) >= 1:
+                # First element is the mesh path
+                mesh_paths.append(row[0])
+                # Second element is the category label (Humanoid, Vase, etc.)
+                categories.append(row[1])
+                # The remainder of the row are the features (excluding 'volume', 'compactness', 'convexity', and 'rectangularity' for now)
+                features.append(row[2:3] + row[5:6] + row[7:8] + row[9:])
+                # features.append(row[2:])
+
+    return mesh_paths, categories, np.array(features)
 
 
 def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> None:
@@ -46,6 +72,26 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
         meshes.append(mesh)
 
     o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
+
+
+def visualize_KNN(mesh_paths):
+    # Load meshes
+    meshes = []
+    for i, mesh_path in enumerate(mesh_paths):
+        if i != 0:
+            mesh_path = "data_normalized/" + mesh_path
+        mesh = o3d.io.read_triangle_mesh(mesh_path)
+        mesh.compute_vertex_normals()
+
+        # Add translation offset
+        mesh.translate((i * 0.7 + int(i>0), 0, 0))
+        meshes.append(mesh)
+
+    o3d.visualization.draw_geometries(
+        meshes,
+        width=1280,
+        height=720,
+    )
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
@@ -121,27 +167,52 @@ def return_dist_func(selector: str):
 
 if __name__ == "__main__":
     # Query shape/mesh
-    fp_query = "./data/Bird/D00089.obj"
-    fp_features = "./csvs/feature_extraction.csv"
+    fp_query = "./data_normalized/Bird/D00089.obj"
+    fp_features = "./Rorschach/feature_extraction/features.csv"
     fp_data = "./data_normalized/"
     distance_function = get_emd
+    # Flag for using KNN instead of custom distance functions
+    knn = True
 
     df_features = pd.read_csv(fp_features)
     # Preprocess filename column to only keep the filename
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
-    # Load features of query mesh
-    features_query = get_features(df_features, fp_query)
-    if features_query is None:
-        raise Exception(f"\nNo features found for '{fp_query}'.")
+    # Use KNN for querying
+    if knn:
+         # Load feature vector for query shape and db shapes
+        query_features = get_features(df_features, fp_query)
+        paths, labels, features = get_all_features(fp_features)
+        
+        # Use KDTree in order to perform KNN
+        kdtree = sp.spatial.KDTree(features)
 
-    print(f"Total of {len(features_query)} features extracted from query mesh.")
+        # Number of nearest neighbours to retrieve
+        k = 3
+        knn_distances, knn_indices = kdtree.query(query_features, k=k)
+        print(
+            f"{k} nearest neighbors for shape {fp_query}:\n",
+            "\n".join([("    " + str(paths[i]) + f" (label='{labels[i]}', distance={dist})") for i, dist in zip(knn_indices, knn_distances)]),
+            sep=""
+        )
 
-    # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-    returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
-    print(f"Number of returned meshes: {len(returned_meshes)}")
-    print(f"Best match: {returned_meshes[0]} with EMD: {sorted_scores[0]:3f}")
+        # Visualize results
+        visualize_KNN([fp_query] + [paths[i] for i in knn_indices])
 
-    # Visualize query mesh and desired mesh from returned mesh list (index 0: best match, index -1: worst match)
-    meshes_to_visualize = [fp_query, returned_meshes[0]]
-    visualize(meshes_to_visualize)
+    # Use custom distance functions for querying
+    else:
+        # Load features of query mesh
+        features_query = get_features(df_features, fp_query)
+        if features_query is None:
+            raise Exception(f"\nNo features found for '{fp_query}'.")
+
+        print(f"Total of {len(features_query)} features extracted from query mesh.")
+
+        # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
+        returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
+        print(f"Number of returned meshes: {len(returned_meshes)}")
+        print(f"Best match: {returned_meshes[0]} with EMD: {sorted_scores[0]:3f}")
+
+        # Visualize query mesh and desired mesh from returned mesh list (index 0: best match, index -1: worst match)
+        meshes_to_visualize = [fp_query, returned_meshes[0]]
+        visualize(meshes_to_visualize)

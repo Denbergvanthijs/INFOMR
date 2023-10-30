@@ -75,7 +75,7 @@ def plot_hist_grid(df, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000
 
 if __name__ == "__main__":
     # Load data
-    fp_data = "./csvs/feature_extraction.csv"
+    fp_data = "./Rorschach/feature_extraction/features.csv"
     n_bins = 10
     n_iter = 1_000
     n_classes = 4
