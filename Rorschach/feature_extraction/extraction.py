@@ -1,7 +1,7 @@
 import itertools
 import math
 import os
-import pandas as pd
+
 import numpy as np
 import open3d as o3d
 from pymeshlab import MeshSet
@@ -281,14 +281,14 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename,category,surface_area,volume,compactness,diameter,convexity,eccentricity,rectangularity" + hists[:-1]  # Remove last comma
+    header = "filename,category,
+    header += "surface_area,volume,compactness,diameter,convexity,eccentricity,rectangularity"
+    header += hists[:-1]  # Remove last comma
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
 
-
     # Fill NA values
-
     # df = pd.read_csv('./Rorschach/feature_extraction/features.csv')
     # df = df.fillna(0)
 

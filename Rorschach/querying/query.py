@@ -1,12 +1,13 @@
+import csv
 import os
-import scipy as sp
+
+import numpy as np
 import open3d as o3d
 import pandas as pd
-import csv
-import numpy as np
-from tqdm import tqdm
-from Rorschach.querying.distance_functions import (get_cosine_distance, get_emd,
+import scipy as sp
+from distance_functions import (get_cosine_distance, get_emd,
                                 get_euclidean_distance, get_manhattan_distance)
+from tqdm import tqdm
 
 
 def get_features(df_features, fp_mesh) -> list:
@@ -68,30 +69,10 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
         mesh.compute_vertex_normals()
 
         # Add translation offset
-        mesh.translate((i, 0, 0))
-        meshes.append(mesh)
-
-    o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
-
-
-def visualize_KNN(mesh_paths):
-    # Load meshes
-    meshes = []
-    for i, mesh_path in enumerate(mesh_paths):
-        if i != 0:
-            mesh_path = "data_normalized/" + mesh_path
-        mesh = o3d.io.read_triangle_mesh(mesh_path)
-        mesh.compute_vertex_normals()
-
-        # Add translation offset
         mesh.translate((i * 0.7 + int(i>0), 0, 0))
         meshes.append(mesh)
 
-    o3d.visualization.draw_geometries(
-        meshes,
-        width=1280,
-        height=720,
-    )
+    o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
@@ -170,6 +151,7 @@ if __name__ == "__main__":
     fp_query = "./data_normalized/Bird/D00089.obj"
     fp_features = "./Rorschach/feature_extraction/features.csv"
     fp_data = "./data_normalized/"
+    
     distance_function = get_emd
     # Flag for using KNN instead of custom distance functions
     knn = True
@@ -178,36 +160,31 @@ if __name__ == "__main__":
     # Preprocess filename column to only keep the filename
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
+    # Load feature vector for query shape and db shapes
+    features_query = get_features(df_features, fp_query)
+    if features_query is None:
+        raise Exception(f"\nNo features found for '{fp_query}'.")
+    print(f"Total of {len(features_query)} features extracted from query mesh.")
+
     # Use KNN for querying
     if knn:
-         # Load feature vector for query shape and db shapes
-        query_features = get_features(df_features, fp_query)
+        # Number of nearest neighbours to retrieve
+        k = 3
+
         paths, labels, features = get_all_features(fp_features)
         
         # Use KDTree in order to perform KNN
         kdtree = sp.spatial.KDTree(features)
-
-        # Number of nearest neighbours to retrieve
-        k = 3
-        knn_distances, knn_indices = kdtree.query(query_features, k=k)
-        print(
-            f"{k} nearest neighbors for shape {fp_query}:\n",
-            "\n".join([("    " + str(paths[i]) + f" (label='{labels[i]}', distance={dist})") for i, dist in zip(knn_indices, knn_distances)]),
-            sep=""
-        )
+        knn_distances, knn_indices = kdtree.query(features_query, k=k)
+        
+        results = [("    " + str(paths[i]) + f" (label='{labels[i]}', distance={dist})") for i, dist in zip(knn_indices, knn_distances)]
+        print(f"{k} nearest neighbors for shape {fp_query}:\n",
+              "\n".join(results), sep="")
 
         # Visualize results
-        visualize_KNN([fp_query] + [paths[i] for i in knn_indices])
+        visualize([fp_query] + ["data_normalized/" + paths[i] for i in knn_indices])
 
-    # Use custom distance functions for querying
-    else:
-        # Load features of query mesh
-        features_query = get_features(df_features, fp_query)
-        if features_query is None:
-            raise Exception(f"\nNo features found for '{fp_query}'.")
-
-        print(f"Total of {len(features_query)} features extracted from query mesh.")
-
+    else: # Use custom distance functions for querying
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
         returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
         print(f"Number of returned meshes: {len(returned_meshes)}")

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("csvs/feature_extraction.csv")
+df = pd.read_csv("Rorschach/feature_extraction/features.csv")
 
 # Access the specific column you want to analyze
 area = df["surface_area"]
