@@ -12,12 +12,13 @@ from tqdm import tqdm
 
 def get_features(df_features, fp_mesh) -> list:
     # Obtain features from dataframe based on filename and category
+    fp_mesh = os.path.normpath(fp_mesh)  # To make /, \ and \\ work
 
     if not os.path.exists(fp_mesh):
         raise Exception(f"\nThe '{fp_mesh}' file does not exist.")
 
     # Split on / and obtain category and filename
-    category, filename = fp_mesh.split("/")[-2:]
+    category, filename = fp_mesh.split(os.sep)[-2:]  # Split normalised path on seperator that is dependent on OS
 
     # Select rows where filename and category match
     df_temp = df_features[df_features["filename"] == filename]
@@ -69,14 +70,14 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
         mesh.compute_vertex_normals()
 
         # Add translation offset
-        mesh.translate((i * 0.7 + int(i>0), 0, 0))
+        mesh.translate((i * 0.7 + int(i > 0), 0, 0))
         meshes.append(mesh)
 
     o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
 
 
 # Given a query shape, create an ordered list of meshes from the dataset based on EMD
-def query(features_query, df_features, fp_data, distance_function=get_emd) -> list:
+def query(features_query, df_features, fp_data, distance_function=get_emd, enable_tqdm=True):
     '''Compute the Earth Mover's distance (EMD) between a given query mesh and all meshes in a given dataset. 
     Create an ordered list of meshes based on calculated EMD values. Visualize the query mesh and a specific mesh 
     from the ordered mesh list.
@@ -92,7 +93,7 @@ def query(features_query, df_features, fp_data, distance_function=get_emd) -> li
         raise Exception(f"\nThe '{fp_data}' folder does not exist.")
 
     # EMD does not work with negative values, so check if any value of the features is negative
-    if min(features_query) < 0:
+    if min(features_query) < 0 and distance_function == get_emd:
         raise Exception(f"The query mesh features contain negative values. EMD cannot be computed.")
 
     # Create dict to store pairs of meshes and their Eath Mover's distance to query mesh
@@ -100,7 +101,7 @@ def query(features_query, df_features, fp_data, distance_function=get_emd) -> li
 
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     categories = next(os.walk(fp_data))[1]
-    for category in tqdm(categories):
+    for category in tqdm(categories, desc="Categories", disable=not enable_tqdm):
         fp_cat_in = os.path.join(fp_data, category)  # Input folder
 
         if not os.path.exists(fp_cat_in):
@@ -108,7 +109,7 @@ def query(features_query, df_features, fp_data, distance_function=get_emd) -> li
             continue
 
         # Iterate over all mesh files in current subfolder
-        for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}"):
+        for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}", disable=not enable_tqdm):
 
             # Obtain full mesh path and load features
             mesh_path = os.path.join(fp_data, category + "/" + filename)
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     fp_query = "./data_normalized/Bird/D00089.obj"
     fp_features = "./Rorschach/feature_extraction/features.csv"
     fp_data = "./data_normalized/"
-    
+
     distance_function = get_emd
     # Flag for using KNN instead of custom distance functions
     knn = True
@@ -172,11 +173,11 @@ if __name__ == "__main__":
         k = 3
 
         paths, labels, features = get_all_features(fp_features)
-        
+
         # Use KDTree in order to perform KNN
         kdtree = sp.spatial.KDTree(features)
         knn_distances, knn_indices = kdtree.query(features_query, k=k)
-        
+
         results = [("    " + str(paths[i]) + f" (label='{labels[i]}', distance={dist})") for i, dist in zip(knn_indices, knn_distances)]
         print(f"{k} nearest neighbors for shape {fp_query}:\n",
               "\n".join(results), sep="")
@@ -184,7 +185,7 @@ if __name__ == "__main__":
         # Visualize results
         visualize([fp_query] + ["data_normalized/" + paths[i] for i in knn_indices])
 
-    else: # Use custom distance functions for querying
+    else:  # Use custom distance functions for querying
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
         returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
         print(f"Number of returned meshes: {len(returned_meshes)}")
