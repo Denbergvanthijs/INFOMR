@@ -28,7 +28,7 @@ def append_to_dict(_dict, label, value):
         _dict[label].append(value)
 
 
-def plot_perclass_metrics(data_dict, metric):
+def plot_perclass_metrics(data_dict, metric, k=None):
     # Plot histogram
     labels = list(data_dict.keys())
     values = list(data_dict.values())
@@ -42,10 +42,11 @@ def plot_perclass_metrics(data_dict, metric):
     plt.title(f"{metric.title()} per category")
 
     plt.tight_layout()
+    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric.lower().replace(' ', '_')}_k{k}.png")
     plt.show()
 
 
-def main(query_results_path):
+def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
     query_results, ground_truth = get_query_results(query_results_path)
 
     # Compute metrics
@@ -58,6 +59,9 @@ def main(query_results_path):
     database_size = len(query_results)
 
     for i, (y_pred, query_class) in enumerate(zip(list(query_results.values()), ground_truth.values())):
+        if k is not None:  # Limit to the top k results, results are already sorted by distance
+            y_pred = y_pred[:k]
+
         query_size = len(y_pred)
 
         # Get true positives/negatives and false positives/negatives
@@ -67,8 +71,8 @@ def main(query_results_path):
         # Correctly labelled as 'NOT a member of query class' (i.e. all shapes in the database not part of query class that were not returned)
         TN = database_size - query_size - FP
         # Incorrectly labelled as 'NOT a member of query class' (i.e. all shapes in the database that are
-        FN = query_size - TP
         # a part of the query class but were not returned)
+        FN = query_size - TP
 
         # Compute performance metrics
         precision = TP / (TP + FP)
@@ -83,12 +87,9 @@ def main(query_results_path):
             f1_score = 2 * ((precision * recall) / (precision + recall))
 
         # Store performance metric results
-        append_to_dict(precisions, query_class, precision)
-        append_to_dict(recalls, query_class, recall)
-        append_to_dict(f1_scores, query_class, f1_score)
-        append_to_dict(accuracies, query_class, accuracy)
-        append_to_dict(sensitivities, query_class, sensitivity)
-        append_to_dict(specificities, query_class, specificity)
+        for metric, value in zip([precisions, recalls, f1_scores, accuracies, sensitivities, specificities],
+                                 [precision, recall, f1_score, accuracy, sensitivity, specificity]):
+            append_to_dict(metric, query_class, value)
 
     # Aggregate performance metrics for each class
     perclass_precisions = {label: stats.mean(class_precisions) for label, class_precisions in precisions.items()}
@@ -97,13 +98,12 @@ def main(query_results_path):
     perclass_accuracies = {label: stats.mean(class_accuracies) for label, class_accuracies in accuracies.items()}
     perclass_sensitivities = {label: stats.mean(class_sensitivities) for label, class_sensitivities in sensitivities.items()}
     perclass_specificities = {label: stats.mean(class_specificities) for label, class_specificities in specificities.items()}
-    # print("\nper-class mean precisions: ", perclass_precisions)
-    # print("\nper-class mean recalls: ", perclass_recalls)
-    # print("\nper-class mean f1 scores: ", perclass_f1_scores)
-    # print("\nper-class mean accuracies: ", perclass_accuracies)
-    # print("\nper-class mean sensitivities: ", perclass_sensitivities)
-    # print("\nper-class mean specificities: ", perclass_specificities)
 
+    return perclass_precisions, perclass_recalls, perclass_f1_scores, perclass_accuracies, perclass_sensitivities, perclass_specificities
+
+
+def calculate_overall(perclass_precisions, perclass_recalls, perclass_f1_scores,
+                      perclass_accuracies, perclass_sensitivities, perclass_specificities):
     # Aggregate performance metrics across entire database
     overall_precision = stats.mean(list(perclass_precisions.values()))
     overall_recall = stats.mean(list(perclass_recalls.values()))
@@ -111,6 +111,7 @@ def main(query_results_path):
     overall_accuracy = stats.mean(list(perclass_accuracies.values()))
     overall_sensitivity = stats.mean(list(perclass_sensitivities.values()))
     overall_specificity = stats.mean(list(perclass_specificities.values()))
+
     print("\n" + "-"*30 + "\nOVERALL PERFORMANCE\n" + "-"*30)
     print("Overall precision: ", overall_precision)
     print("Overall recall: ", overall_recall)
@@ -119,20 +120,17 @@ def main(query_results_path):
     print("Overall sensitivity: ", overall_sensitivity)
     print("Overall specificity: ", overall_specificity)
 
-    # Plot per-class performance metrics
-    plot_type = "accuracy"
-
-    plot_d = {"precision": perclass_precisions,
-              "recall": perclass_recalls,
-              "F1 score": perclass_f1_scores,
-              "accuracy": perclass_accuracies,
-              "sensitivity": perclass_sensitivities,
-              "specificity": perclass_specificities}
-
-    plot_perclass_metrics(plot_d[plot_type], plot_type)
+    return overall_precision, overall_recall, overall_f1_score, overall_accuracy, overall_sensitivity, overall_specificity
 
 
 if __name__ == "__main__":
     query_results_path = "./Rorschach/evaluation/data/collect_neighbours_knn.csv"
+    plot_type = "F1 score"
+    k = None  # Top k results to consider
 
-    main(query_results_path)
+    pc_p, pc_r, pc_f1, pc_acc, pc_sens, pc_spec = calculate_perclass(query_results_path, plot_type, k)
+
+    overall_p, overall_r, overall_f1, overall_acc, overall_sens, overall_spec = calculate_overall(
+        pc_p, pc_r, pc_f1, pc_acc, pc_sens, pc_spec)
+
+    plot_perclass_metrics(pc_f1, plot_type, k)
