@@ -16,16 +16,17 @@ if __name__ == "__main__":
     # Flag for using KNN instead of custom distance functions
     distance_function = "knn"
     distance_function = get_manhattan_distance
-    # distance_function = get_euclidean_distance
-    # distance_function = get_cosine_distance
-    # distance_function = get_emd
+    distance_function = get_euclidean_distance
+    distance_function = get_cosine_distance
+    distance_function = get_emd
 
+    # Get a postfix to save each experiment's results in a separate csv file
     if distance_function == "knn":
         csv_postfix = "knn"
     else:
         csv_postfix = distance_function.__name__.split("_")[1]
 
-    fp_output_csv = f"./Rorschach/querying/collect_neighbours_{csv_postfix}.csv"
+    fp_output_csv = f"./Rorschach/evaluation/data/collect_neighbours_{csv_postfix}.csv"
 
     df_features = pd.read_csv(fp_features)
     # Preprocess filename column to only keep the filename
