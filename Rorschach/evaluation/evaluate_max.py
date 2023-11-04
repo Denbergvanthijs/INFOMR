@@ -1,5 +1,6 @@
+from collections import defaultdict
+import numpy as np
 import pandas as pd
-import statistics as stats
 from matplotlib import pyplot as plt
 
 UU_YELLOW = "#FFCD00"
@@ -19,13 +20,6 @@ def get_query_results(results_path):
         ground_truth[query_filepath] = df[df["query_filepath"] == query_filepath]["query_category"].iloc[0]
 
     return query_results, ground_truth
-
-
-def append_to_dict(_dict, label, value):
-    if not (label in _dict.keys()):
-        _dict[label] = [value]
-    else:
-        _dict[label].append(value)
 
 
 def plot_perclass_metrics(data_dict, metric, k=None):
@@ -50,12 +44,10 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
     query_results, ground_truth = get_query_results(query_results_path)
 
     # Compute metrics
-    precisions = {}
-    recalls = {}
-    f1_scores = {}
-    accuracies = {}
-    sensitivities = {}
-    specificities = {}
+    TPs = defaultdict(list)
+    FPs = defaultdict(list)
+    TNs = defaultdict(list)
+    FNs = defaultdict(list)
     database_size = len(query_results)
 
     for i, (y_pred, query_class) in enumerate(zip(list(query_results.values()), ground_truth.values())):
@@ -74,63 +66,63 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
         # a part of the query class but were not returned)
         FN = query_size - TP
 
-        # Compute performance metrics
+        # Store performance metric results
+        for metric, value in zip([TPs, FPs, TNs, FNs], [TP, FP, TN, FN]):
+            metric[query_class].append(value)
+
+    return TPs, FPs, TNs, FNs
+
+
+def calculate_metrics(TPs, FPs, TNs, FNs):
+    d = {}
+    for key in TPs.keys():  # Each category has its TP, FP, TN, FN values stored per queried shape
+        TP = np.array(TPs[key])
+        FP = np.array(FPs[key])
+        TN = np.array(TNs[key])
+        FN = np.array(FNs[key])
+
+        # Compute performance metrics row wise, thus for all queried shapes of a category in one go
         precision = TP / (TP + FP)
         recall = TP / (TP + FN)
         accuracy = (TP + TN) / (TP + TN + FP + FN)
-        sensitivity = TP / (TP + FN)
+        sensitivity = recall
         specificity = TN / (TN + FP)
+        f1_score = 2 * ((precision * recall) / (precision + recall))
 
-        if (precision + recall) == 0:
-            f1_score = 0
-        else:
-            f1_score = 2 * ((precision * recall) / (precision + recall))
+        results = [precision, recall, accuracy, sensitivity, specificity, f1_score]
+        results = [np.mean(r) for r in results]  # Average over all shapes in category
 
-        # Store performance metric results
-        for metric, value in zip([precisions, recalls, f1_scores, accuracies, sensitivities, specificities],
-                                 [precision, recall, f1_score, accuracy, sensitivity, specificity]):
-            append_to_dict(metric, query_class, value)
+        d[key] = results
 
-    # Aggregate performance metrics for each class
-    perclass_precisions = {label: stats.mean(class_precisions) for label, class_precisions in precisions.items()}
-    perclass_recalls = {label: stats.mean(class_recalls) for label, class_recalls in recalls.items()}
-    perclass_f1_scores = {label: stats.mean(class_f1_scores) for label, class_f1_scores in f1_scores.items()}
-    perclass_accuracies = {label: stats.mean(class_accuracies) for label, class_accuracies in accuracies.items()}
-    perclass_sensitivities = {label: stats.mean(class_sensitivities) for label, class_sensitivities in sensitivities.items()}
-    perclass_specificities = {label: stats.mean(class_specificities) for label, class_specificities in specificities.items()}
-
-    return perclass_precisions, perclass_recalls, perclass_f1_scores, perclass_accuracies, perclass_sensitivities, perclass_specificities
+    return d
 
 
-def calculate_overall(perclass_precisions, perclass_recalls, perclass_f1_scores,
-                      perclass_accuracies, perclass_sensitivities, perclass_specificities):
-    # Aggregate performance metrics across entire database
-    overall_precision = stats.mean(list(perclass_precisions.values()))
-    overall_recall = stats.mean(list(perclass_recalls.values()))
-    overall_f1_score = stats.mean(list(perclass_f1_scores.values()))
-    overall_accuracy = stats.mean(list(perclass_accuracies.values()))
-    overall_sensitivity = stats.mean(list(perclass_sensitivities.values()))
-    overall_specificity = stats.mean(list(perclass_specificities.values()))
+def calculate_overall(perclass_score: dict) -> float:
+    # Convert dict to 2D array
+    # Each row is a category, each column is a metric
+    scores = np.array(list(perclass_score.values()))
 
-    print("\n" + "-"*30 + "\nOVERALL PERFORMANCE\n" + "-"*30)
-    print("Overall precision: ", overall_precision)
-    print("Overall recall: ", overall_recall)
-    print("Overall F1 score: ", overall_f1_score)
-    print("Overall accuracy: ", overall_accuracy)
-    print("Overall sensitivity: ", overall_sensitivity)
-    print("Overall specificity: ", overall_specificity)
+    # Average of each column
+    overall_score = np.mean(scores, axis=0)
 
-    return overall_precision, overall_recall, overall_f1_score, overall_accuracy, overall_sensitivity, overall_specificity
+    return overall_score
 
 
 if __name__ == "__main__":
     query_results_path = "./Rorschach/evaluation/data/collect_neighbours_knn.csv"
     plot_type = "F1 score"
+    column = "Apartment"
     k = None  # Top k results to consider
 
-    pc_p, pc_r, pc_f1, pc_acc, pc_sens, pc_spec = calculate_perclass(query_results_path, plot_type, k)
+    TPs, FPs, TNs, FNs = calculate_perclass(query_results_path, plot_type, k)
+    perclass_results = calculate_metrics(TPs, FPs, TNs, FNs)
+    print(f"Perclass results for {column}: {perclass_results[column]}")
 
-    overall_p, overall_r, overall_f1, overall_acc, overall_sens, overall_spec = calculate_overall(
-        pc_p, pc_r, pc_f1, pc_acc, pc_sens, pc_spec)
+    overall_scores = calculate_overall(perclass_results)
+    overall_scores = [round(score, 3) for score in overall_scores]
+    results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score"]
+    print(f"Overall results: {dict(zip(results_columns, overall_scores))}")
 
+    # Get F1 score of each class
+    pc_f1 = {key: value[-1] for key, value in perclass_results.items()}
     plot_perclass_metrics(pc_f1, plot_type, k)
