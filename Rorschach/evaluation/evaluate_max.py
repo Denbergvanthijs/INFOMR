@@ -59,7 +59,7 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
         query_size = len(y_pred)
 
         # Get true positives/negatives and false positives/negatives
-        TP = y_pred.count(query_class)          # Correctly labelled as 'member of query class'
+        TP = y_pred.count(query_class)  # Correctly labelled as 'member of query class'
         # Incorrectly labelled as 'member of query class' (i.e. all returned shapes that are not part of the query class)
         FP = query_size - TP
         # Correctly labelled as 'NOT a member of query class' (i.e. all shapes in the database not part of query class that were not returned)
@@ -75,6 +75,10 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
     return TPs, FPs, TNs, FNs
 
 
+def f_beta_score(precision, recall, beta):
+    return (1 + beta**2) * ((precision * recall) / ((beta**2 * precision) + recall))
+
+
 def calculate_metrics(TPs, FPs, TNs, FNs):
     d = {}
     for key in TPs.keys():  # Each category has its TP, FP, TN, FN values stored per queried shape
@@ -85,13 +89,14 @@ def calculate_metrics(TPs, FPs, TNs, FNs):
 
         # Compute performance metrics row wise, thus for all queried shapes of a category in one go
         precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
+        recall = TP / FN
         accuracy = (TP + TN) / (TP + TN + FP + FN)
-        sensitivity = recall
+        sensitivity = TP / (TP + FN)
         specificity = TN / (TN + FP)
-        f1_score = 2 * ((precision * recall) / (precision + recall))
+        f1_score = f_beta_score(precision, recall, 1)
+        f2_score = f_beta_score(precision, recall, 2)
 
-        results = [precision, recall, accuracy, sensitivity, specificity, f1_score]
+        results = [precision, recall, accuracy, sensitivity, specificity, f1_score, f2_score]
 
         results = [np.nan_to_num(r, nan=0, neginf=0, posinf=0) for r in results]  # Replace NaNs with 0
         results = [np.mean(r) for r in results]  # Average over all shapes in category
@@ -119,8 +124,8 @@ if __name__ == "__main__":
                            "./Rorschach/evaluation/data/collect_neighbours_cosine.csv",
                            "./Rorschach/evaluation/data/collect_neighbours_emd.csv"]
     distance_functions = ["KNN", "Manhattan", "Euclidean", "Cosine", "EMD"]
-    results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score"]
-    plot_type = "F1 score"
+    results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score", "F2 score"]
+    plot_type = "F2 score"
     column = "Apartment"
     ks = [3, None]  # Top k results to consider
 
