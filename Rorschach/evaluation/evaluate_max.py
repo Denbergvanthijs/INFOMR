@@ -1,3 +1,4 @@
+from tqdm.contrib import tzip
 from collections import defaultdict
 import numpy as np
 import pandas as pd
@@ -22,7 +23,7 @@ def get_query_results(results_path):
     return query_results, ground_truth
 
 
-def plot_perclass_metrics(data_dict, metric, k=None):
+def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
     # Plot histogram
     labels = list(data_dict.keys())
     values = list(data_dict.values())
@@ -30,14 +31,15 @@ def plot_perclass_metrics(data_dict, metric, k=None):
     # items.sort(key=lambda x: x[1])
     # labels, values = zip(*items)
 
-    plt.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
+    fig, ax = plt.subplots()
+    ax = plt.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
     plt.xticks(rotation=90)
     plt.ylabel(metric.title())
-    plt.title(f"{metric.title()} per category")
+    plt.title(f"{metric.title()} per category for the {distance_function} distance function")
 
     plt.tight_layout()
-    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric.lower().replace(' ', '_')}_k{k}.png")
-    plt.show()
+    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric.lower().replace(' ', '_')}_k{k}_{distance_function}.png")
+    # plt.show()
 
 
 def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
@@ -90,6 +92,8 @@ def calculate_metrics(TPs, FPs, TNs, FNs):
         f1_score = 2 * ((precision * recall) / (precision + recall))
 
         results = [precision, recall, accuracy, sensitivity, specificity, f1_score]
+
+        results = [np.nan_to_num(r, nan=0, neginf=0, posinf=0) for r in results]  # Replace NaNs with 0
         results = [np.mean(r) for r in results]  # Average over all shapes in category
 
         d[key] = results
@@ -109,20 +113,36 @@ def calculate_overall(perclass_score: dict) -> float:
 
 
 if __name__ == "__main__":
-    query_results_path = "./Rorschach/evaluation/data/collect_neighbours_knn.csv"
+    query_results_paths = ["./Rorschach/evaluation/data/collect_neighbours_knn.csv",
+                           "./Rorschach/evaluation/data/collect_neighbours_manhattan.csv",
+                           "./Rorschach/evaluation/data/collect_neighbours_euclidean.csv",
+                           "./Rorschach/evaluation/data/collect_neighbours_cosine.csv",
+                           "./Rorschach/evaluation/data/collect_neighbours_emd.csv"]
+    distance_functions = ["KNN", "Manhattan", "Euclidean", "Cosine", "EMD"]
+    results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score"]
     plot_type = "F1 score"
     column = "Apartment"
-    k = None  # Top k results to consider
+    ks = [3, None]  # Top k results to consider
 
-    TPs, FPs, TNs, FNs = calculate_perclass(query_results_path, plot_type, k)
-    perclass_results = calculate_metrics(TPs, FPs, TNs, FNs)
-    print(f"Perclass results for {column}: {perclass_results[column]}")
+    results = []
+    for fp, distance_function in tzip(query_results_paths, distance_functions):
+        for k in ks:
+            TPs, FPs, TNs, FNs = calculate_perclass(fp, plot_type, k)
+            perclass_results = calculate_metrics(TPs, FPs, TNs, FNs)
+            # print(f"Perclass results for {column}: {perclass_results[column]}")
 
-    overall_scores = calculate_overall(perclass_results)
-    overall_scores = [round(score, 3) for score in overall_scores]
-    results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score"]
-    print(f"Overall results: {dict(zip(results_columns, overall_scores))}")
+            overall_scores = calculate_overall(perclass_results)
+            overall_scores = [round(score, 3) for score in overall_scores]
+            # print(f"Overall results: {dict(zip(results_columns, overall_scores))}")
 
-    # Get F1 score of each class
-    pc_f1 = {key: value[-1] for key, value in perclass_results.items()}
-    plot_perclass_metrics(pc_f1, plot_type, k)
+            # Get F1 score of each class
+            pc_f1 = {key: value[-1] for key, value in perclass_results.items()}
+            plot_perclass_metrics(pc_f1, plot_type, distance_function, k)
+
+            k = k if k is not None else "all"  # Nonetype will not save correctly to csv
+            results.append([distance_function, k] + overall_scores)
+
+    # Print results
+    results = pd.DataFrame(results, columns=["Distance function", "k"] + results_columns)
+    print(results)
+    results.to_csv("./Rorschach/evaluation/data/overall_results.csv", index=False, sep=",")
