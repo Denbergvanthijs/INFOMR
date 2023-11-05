@@ -13,21 +13,19 @@ UU_PAL = sns.color_palette([UU_YELLOW, UU_RED, UU_CREME, UU_ORANGE, UU_BURGUNDY,
 
 
 def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
-    # Plot histogram
-    labels = list(data_dict.keys())
-    values = list(data_dict.values())
-    # items = [(label, value) for label, value in zip(labels, values)]
-    # items.sort(key=lambda x: x[1])
-    # labels, values = zip(*items)
+    labels, values = zip(*data_dict.items())
+    k_str = k if k is not None else "|c|"
+    metric_str = metric.lower().replace(" ", "_")
 
     fig, ax = plt.subplots()
     ax = plt.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
+    plt.title(f"{metric.title()} per category for the {distance_function} distance function (k={k_str})")
+
     plt.xticks(rotation=90)
     plt.ylabel(metric.title())
-    plt.title(f"{metric.title()} per category for the {distance_function} distance function")
 
     plt.tight_layout()
-    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric.lower().replace(' ', '_')}_k{k}_{distance_function}.png")
+    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric_str}_k{k}_{distance_function}.png")
     # plt.show()
 
 

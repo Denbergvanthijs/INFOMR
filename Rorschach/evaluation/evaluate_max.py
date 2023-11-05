@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 from plot_results import plot_perclass_metrics
+from sklearn.metrics import confusion_matrix
 from tqdm.contrib import tzip
 
 
@@ -36,17 +37,31 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
         if k is not None:  # Limit to the top k results, results are already sorted by distance
             y_pred = y_pred[:k]
 
+        # Number of meshes retrieved, should ideally be equal to k
+        # But can be less if k > category size or if there are not enough matches in the database
         query_size = len(y_pred)
 
+        # 1 for all retrieved shapes, 0 for all shapes not retrieved
+        # Thus, the shapes at (database size minus k) are always 0
+        y_true = [1] * query_size + [0] * (database_size - query_size)
+
+        # 1 for all retrieved shapes that have the correct category, 0 for all shapes not retrieved correctly
+        # And 0 for all shapes that are not retrieved at all
+        y_pred = [1 if pred == query_class else 0 for pred in y_pred] + [0] * (database_size - len(y_pred))
+
+        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])  # Set labels as 0 and 1 to guarantee correct order
+        TN, FP, FN, TP = cm.ravel()
+
         # Get true positives/negatives and false positives/negatives
-        TP = y_pred.count(query_class)  # Correctly labelled as 'member of query class'
+        # TP = y_pred.count(query_class)  # Correctly labelled as 'member of query class'
         # Incorrectly labelled as 'member of query class' (i.e. all returned shapes that are not part of the query class)
-        FP = query_size - TP
-        # Correctly labelled as 'NOT a member of query class' (i.e. all shapes in the database not part of query class that were not returned)
-        TN = database_size - query_size - FP
+        # FP = query_size - TP
+        # Correctly labelled as 'NOT a member of query class'
+        # i.e. all shapes in the database not part of query class that were not returned
+        # TN = database_size - query_size - FP
         # Incorrectly labelled as 'NOT a member of query class' (i.e. all shapes in the database that are
         # a part of the query class but were not returned)
-        FN = query_size - TP
+        # FN = query_size - TP
 
         # Store performance metric results
         for metric, value in zip([TPs, FPs, TNs, FNs], [TP, FP, TN, FN]):
@@ -69,7 +84,7 @@ def calculate_metrics(TPs, FPs, TNs, FNs):
 
         # Compute performance metrics row wise, thus for all queried shapes of a category in one go
         precision = TP / (TP + FP)
-        recall = TP / FN
+        recall = TP / (TP + FN)
         accuracy = (TP + TN) / (TP + TN + FP + FN)
         sensitivity = TP / (TP + FN)
         specificity = TN / (TN + FP)
