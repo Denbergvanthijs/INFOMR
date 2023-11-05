@@ -107,19 +107,10 @@ def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     # print(f"Scaled max dim: {bbox_max_dim}")
     # print(f"bc after scaling: {np.sum(np.square(measures['barycenter']))}")
 
-    ### Remesh ###
-
-    # We might need to do this before the rest of the operations.
-    # I think the PCA we're doing for the rotations is sensitive to sample size #TODO: Check if this is true
-    # Filter and Parameters based on TA's code
-    # target_edge_len = pymeshlab.AbsoluteValue(0.02)  # TODO: Choose appropriate value
-    # remashing_iterations = 2  # TODO: Choose appropriate value
-    # meshset.apply_filter("meshing_isotropic_explicit_remeshing", iterations=remashing_iterations, targetlen=target_edge_len)
-
     return meshset
 
 
-def read_meshes(data_folder: str = "data", data_folder_output: str = "data_normalized", n_categories: int = 0) -> np.ndarray:
+def read_meshes(data_folder: str = "data_cleaned", data_folder_output: str = "data_normalized", n_categories: int = 0) -> np.ndarray:
     """Reads meshes from data folder and returns a numpy array with mesh info.
 
     :param data_folder: Path to ShapeDatabase folder, defaults to "data"
@@ -246,6 +237,9 @@ def read_meshes(data_folder: str = "data", data_folder_output: str = "data_norma
                                          pc_sqr_error_normalized,
                                          som_error_normalized,
                                          max_dim_normalized])
+            
+        meshset.clear()
+        meshset_normalized.clear()
 
     return [np.array(mesh_info), np.array(mesh_info_normalized)]
 
@@ -271,7 +265,7 @@ if __name__ == "__main__":
     # Flags to read/write info from csv
     read_mesh_info = False
     save_mesh_info = True
-    csv_file_path = "./data/mesh_info.csv"
+    csv_file_path = "./data_cleaned/mesh_info.csv"
     csv_fp_normalized = "./data_normalized/mesh_info.csv"
 
     fp_meshes_in = "./data_cleaned"  # Input, the refined meshes, i.e. after running patch_meshes.py
