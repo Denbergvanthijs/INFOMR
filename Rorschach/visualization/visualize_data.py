@@ -206,8 +206,6 @@ def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, co
 
     max_dim_median = np.median(mesh_info[column])
     max_dim_sd = np.std(mesh_info[column])
-    print(f"Median max dim: {max_dim_median}")
-    print(f"SD: {max_dim_sd}")
 
     fig, axes = plt.subplots(1, 2)
     axes[0].hist(bins_max_dim[:-1], bins_max_dim, weights=max_dim_count, color=UU_YELLOW, edgecolor=UU_RED)
@@ -232,8 +230,12 @@ def hist_before_after(mesh_info, mesh_info_normalized, column: str, sharex: bool
     data_after = mesh_info_normalized[column].values
 
     fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
-    sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent")
-    sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent")
+    if column == "Vertices" or column == "Faces":
+        sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent", binrange=(0,100000))
+        sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent", binrange=(0,100000))
+    else:
+        sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent")
+        sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent")
 
     axes[0].set_title("Before normalization")
     axes[0].set_ylabel("Percentage")
@@ -273,28 +275,27 @@ def boxplot_before_after(mesh_info, mesh_info_normalized, column: str) -> None:
 
 if __name__ == "__main__":
     # Load mesh info from existing CSV file
-    mesh_info = pd.read_csv("./data/mesh_info.csv")
+    mesh_info_raw = pd.read_csv("./data/mesh_info.csv")
+    mesh_info = pd.read_csv("./data_cleaned/mesh_info.csv")
     mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
 
     # 2.2
-    # histogram2D(mesh_info, "Vertices")
-    # histogram2D(mesh_info, "Faces")
-    # boxplot(mesh_info, column="Vertices")
-    # boxplot(mesh_info, column="Faces")
-    # histogram3D(mesh_info)
-    class_distribution(mesh_info)
-    class_histogram(mesh_info)
+    histogram2D(mesh_info_raw, "Vertices")
+    histogram2D(mesh_info_raw, "Faces")
+    boxplot(mesh_info_raw, column="Vertices")
+    boxplot(mesh_info_raw, column="Faces")
+    histogram3D(mesh_info_raw)
+    class_distribution(mesh_info_raw)
+    class_histogram(mesh_info_raw)
 
     # 2.5
-    # barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
-    # hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
-    # hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
-    # boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
-    # print("Max dim before / after normalization:")
-    # print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
-    # print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
-    # max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
-
-    # 2.5 once remeshing works:
-    # hist_before_after(mesh_info, mesh_info_normalized, "Vertices")
-    # hist_before_after(mesh_info, mesh_info_normalized, "Faces")
+    barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
+    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
+    hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
+    boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
+    print("Max dim before / after normalization:")
+    print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
+    print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
+    max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
+    hist_before_after(mesh_info_raw, mesh_info_normalized, "Vertices")
+    hist_before_after(mesh_info_raw, mesh_info_normalized, "Faces")
