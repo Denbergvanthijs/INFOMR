@@ -2,18 +2,27 @@ import os
 
 import pandas as pd
 import scipy as sp
+from query import (
+    get_all_features,
+    get_cosine_distance,
+    get_emd,
+    get_euclidean_distance,
+    get_features,
+    get_manhattan_distance,
+    query,
+)
 from tqdm.contrib import tzip
-from query import (get_all_features,
-                   get_emd,
-                   get_features, query, get_euclidean_distance, get_cosine_distance, get_manhattan_distance)
 
-if __name__ == "__main__":
-    # Query shape/mesh
-    fp_query = "./data_normalized/Bird/D00089.obj"
-    fp_features = "./Rorschach/feature_extraction/features.csv"
-    fp_data = "./data_normalized/"
 
-    for distance_function in ["knn", get_manhattan_distance, get_euclidean_distance, get_cosine_distance, get_emd]:
+def collect_data(fp_features: str, fp_data: str, distance_functions: list):
+    df_features = pd.read_csv(fp_features)
+    # Preprocess filename column to only keep the filename
+    df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
+
+    filepaths, categories, features = get_all_features(fp_features)
+    filepaths = [os.path.join(fp_data, fp) for fp in filepaths]
+
+    for distance_function in distance_functions:
         # Get a postfix to save each experiment's results in a separate csv file
         if distance_function == "knn":
             csv_postfix = "knn"
@@ -22,20 +31,14 @@ if __name__ == "__main__":
 
         fp_output_csv = f"./Rorschach/evaluation/data/collect_neighbours_{csv_postfix}.csv"
 
-        df_features = pd.read_csv(fp_features)
-        # Preprocess filename column to only keep the filename
-        df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
-
-        filepaths, categories, features = get_all_features(fp_features)
-        filepaths = [os.path.join(fp_data, fp) for fp in filepaths]
-        kdtree = sp.spatial.KDTree(features)
+        kdtree = sp.spatial.KDTree(features)  # Build KDTree for KNN only once
 
         matches = []
         for query_filepath, query_category in tzip(filepaths, categories, desc=f"Querying with {csv_postfix}"):
             # Load feature vector for query shape and db shapes
             query_features = get_features(df_features, query_filepath)
             if query_features is None:
-                raise Exception(f"\nNo features found for '{fp_query}'.")
+                raise Exception(f"\nNo features found for '{query_filepath}'.")
 
             # Number of nearest neighbours is equal amount of shapes in that category
             k = df_features[df_features["category"] == query_category].shape[0]
@@ -51,16 +54,19 @@ if __name__ == "__main__":
                     matched_shape = [query_filepath, query_category, match_filename, match_category, distance]
                     matches.append(matched_shape)
 
-                if len(knn_distances) < k:
-                    print(f"Only {len(knn_distances)} neighbours found for {query_filepath}.")
+                # if len(knn_distances) < k:  # If number of neighbours is less than k
+                #     print(f"Only {len(knn_distances)} neighbours found for {query_filepath}.")
 
             else:  # Use custom distance functions for querying
-                # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-                returned_meshes, sorted_scores = query(query_features, df_features, fp_data,
-                                                       distance_function=distance_function, enable_tqdm=False)
+                # List of distances between query shape and all other shapes in the dataset
+                sorted_scores = [distance_function(query_features, feature) for feature in features]
+
+                # Sort scores and keep track of its idx
+                idx = sorted(range(len(sorted_scores)), key=lambda k: sorted_scores[k])  # Get indices of sorted scores
+                sorted_scores = sorted(sorted_scores)  # Sort scores in ascending order
 
                 # Limit to first k to equal amount of shapes in that category
-                returned_meshes = returned_meshes[:k]
+                returned_meshes = [filepaths[i] for i in idx[:k]]  # Limit to first k to equal amount of shapes in that category
                 sorted_scores = sorted_scores[:k]
 
                 for returned_mesh, score in zip(returned_meshes, sorted_scores):
@@ -73,3 +79,12 @@ if __name__ == "__main__":
         df_matches = pd.DataFrame(matches, columns=["query_filepath", "query_category",
                                                     "match_filepath", "match_category", "distance"])
         df_matches.to_csv(fp_output_csv, index=False)
+
+
+if __name__ == "__main__":
+    # Query shape/mesh
+    fp_features = "./Rorschach/feature_extraction/features.csv"
+    fp_data = "./data_normalized/"
+    distance_functions = ["knn", get_manhattan_distance]  # get_euclidean_distance, get_cosine_distance, get_emd]
+
+    df_matches = collect_data(fp_features, fp_data, distance_functions)

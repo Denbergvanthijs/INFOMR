@@ -9,12 +9,18 @@ from scipy.spatial import ConvexHull
 from tqdm import tqdm
 
 
-# Compute the area and volume of a mesh
-def compute_area_volume(mesh):
+def compute_area_volume(mesh) -> tuple:
+    """Compute the area and volume of a mesh
+
+    :param mesh: Mesh to compute area and volume of
+    :type mesh: open3d
+    :return: Area and volume of mesh
+    :rtype: tuple
+    """
     # Compute mesh area and volume
     area = mesh.get_surface_area()
 
-    if mesh.is_watertight():
+    if mesh.is_watertight():  # Only compute volume if mesh is watertight
         volume = mesh.get_volume()
     else:
         volume = -1
@@ -89,8 +95,16 @@ def compute_angle_3D(v1: np.ndarray, v2: np.ndarray, v3: np.ndarray) -> float:
     v2v1 = v1 - v2  # Normalized vectors
     v2v3 = v3 - v2
 
-    cosine_angle = np.dot(v2v1, v2v3) / (np.linalg.norm(v2v1) * np.linalg.norm(v2v3))
-    angle = np.arccos(cosine_angle)  # Angle in radians
+    denominator = np.linalg.norm(v2v1) * np.linalg.norm(v2v3)
+    if denominator == 0:  # Avoid division by zero
+        cosine_angle = 0
+    else:
+        cosine_angle = np.dot(v2v1, v2v3) / denominator  # Cosine of angle between vectors
+
+    if -1 <= cosine_angle <= 1:  # Avoid math domain error
+        angle = np.arccos(cosine_angle)  # Angle in radians
+    else:
+        angle = 0
 
     return np.degrees(angle)  # Angle in degrees from 0 to 180
 
@@ -281,7 +295,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
         hists += ",".join([f"{feature}_{i}" for i in range(n_bins)]) + ","
 
     # Save data to CSV
-    header = "filename,category,
+    header = "filename,category,"
     header += "surface_area,volume,compactness,diameter,convexity,eccentricity,rectangularity"
     header += hists[:-1]  # Remove last comma
 
@@ -299,7 +313,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./Rorschach/feature_extraction/features.csv"
-    n_categories = 2  # len(categories)
+    n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
 
