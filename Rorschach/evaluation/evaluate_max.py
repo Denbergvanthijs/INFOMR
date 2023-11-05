@@ -1,10 +1,9 @@
-from tqdm.contrib import tzip
 from collections import defaultdict
+
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-
-UU_YELLOW = "#FFCD00"
+from plot_results import plot_perclass_metrics
+from tqdm.contrib import tzip
 
 
 def get_query_results(results_path):
@@ -21,25 +20,6 @@ def get_query_results(results_path):
         ground_truth[query_filepath] = df[df["query_filepath"] == query_filepath]["query_category"].iloc[0]
 
     return query_results, ground_truth
-
-
-def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
-    # Plot histogram
-    labels = list(data_dict.keys())
-    values = list(data_dict.values())
-    # items = [(label, value) for label, value in zip(labels, values)]
-    # items.sort(key=lambda x: x[1])
-    # labels, values = zip(*items)
-
-    fig, ax = plt.subplots()
-    ax = plt.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
-    plt.xticks(rotation=90)
-    plt.ylabel(metric.title())
-    plt.title(f"{metric.title()} per category for the {distance_function} distance function")
-
-    plt.tight_layout()
-    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric.lower().replace(' ', '_')}_k{k}_{distance_function}.png")
-    # plt.show()
 
 
 def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
