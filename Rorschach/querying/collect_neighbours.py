@@ -5,12 +5,11 @@ import scipy as sp
 from query import (
     get_all_features,
     get_cosine_distance,
-    get_emd,
     get_euclidean_distance,
     get_features,
     get_manhattan_distance,
-    query,
 )
+from scipy.stats import wasserstein_distance
 from tqdm.contrib import tzip
 
 
@@ -26,6 +25,8 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
         # Get a postfix to save each experiment's results in a separate csv file
         if distance_function == "knn":
             csv_postfix = "knn"
+        elif distance_function == wasserstein_distance:
+            csv_postfix = "emd"
         else:
             csv_postfix = distance_function.__name__.split("_")[1]
 
@@ -85,6 +86,8 @@ if __name__ == "__main__":
     # Query shape/mesh
     fp_features = "./Rorschach/feature_extraction/features.csv"
     fp_data = "./data_normalized/"
-    distance_functions = ["knn", get_manhattan_distance]  # get_euclidean_distance, get_cosine_distance, get_emd]
+
+    # Note that wasserstein_distance == EMD
+    distance_functions = ["knn", get_manhattan_distance, get_euclidean_distance, get_cosine_distance, wasserstein_distance]
 
     df_matches = collect_data(fp_features, fp_data, distance_functions)
