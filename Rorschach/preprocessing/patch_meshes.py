@@ -1,11 +1,12 @@
 import csv
 import os
 
-import pymeshfix
-from pymeshlab import Mesh, MeshSet, AbsoluteValue
-from tqdm import tqdm
-import open3d as o3d
 import numpy as np
+import open3d as o3d
+import pymeshfix
+from pymeshlab import AbsoluteValue, Mesh, MeshSet
+from tqdm import tqdm
+
 
 def reorient_normals(fp_data: str, fp_data_out: str = "data_cleaned", n_categories: int = 0):
     categories = next(os.walk(fp_data))[1]
@@ -34,17 +35,17 @@ def reorient_normals(fp_data: str, fp_data_out: str = "data_cleaned", n_categori
             mesh = o3d.io.read_triangle_mesh(fp_mesh)
             mesh.compute_vertex_normals()
 
-            # # Generate point cloud from triangle mesh
+            # Generate point cloud from triangle mesh
             # pcd = o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np.asarray(mesh.vertices)))
             pcd = mesh.sample_points_poisson_disk(5000)
             # pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
             pcd.estimate_normals()
             # o3d.visualization.draw_geometries([pcd], point_show_normal=True)
-            pcd.orient_normals_consistent_tangent_plane(100) # reorient normals with knn
+            pcd.orient_normals_consistent_tangent_plane(100)  # reorient normals with knn
             # o3d.visualization.draw_geometries([pcd], point_show_normal=True)
 
             reconstructed_mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=10)
-            reconstructed_mesh.paint_uniform_color(np.array([[0.5],[0.5],[0.5]]))
+            reconstructed_mesh.paint_uniform_color(np.array([[0.5], [0.5], [0.5]]))
 
             # mesh = mesh.remove_duplicated_vertices()
             # mesh = mesh.remove_degenerate_triangles()
@@ -55,8 +56,9 @@ def reorient_normals(fp_data: str, fp_data_out: str = "data_cleaned", n_categori
             # Save mesh
             o3d.io.write_triangle_mesh(fp_mesh_out, reconstructed_mesh)
 
-def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_categories: int = 0, 
-                  remeshTargVert = 0, cleanMeshes = True, saveRawInfo = False) -> list:
+
+def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_categories: int = 0,
+                  remeshTargVert=0, cleanMeshes=True, saveRawInfo=False) -> list:
     meshset = MeshSet()
 
     categories = next(os.walk(fp_data))[1]
@@ -88,7 +90,7 @@ def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_ca
             mesh = meshset.current_mesh()
             v_no = mesh.vertex_number()
             f_no = mesh.face_number()
-            
+
             mesh_info.append([filename, category, v_no, f_no])
 
             # Clean mesh
@@ -131,6 +133,7 @@ def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_ca
 
     return errors
 
+
 def fill_holes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_categories: int = -1):
     categories = next(os.walk(fp_data))[1]
     print(f"Reading {n_categories} categories from {fp_data}...")
@@ -160,6 +163,7 @@ def fill_holes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_categ
             # Save mesh
             o3d.io.write_triangle_mesh(fp_mesh_out, mesh)
 
+
 def count_nonwatertight(fp_data: str = "data_cleaned"):
     categories = next(os.walk(fp_data))[1]
     print(f"Reading {n_categories} categories from {fp_data}...")
@@ -169,7 +173,7 @@ def count_nonwatertight(fp_data: str = "data_cleaned"):
     # Iterate over all classes in the dataset (desklamp, bottle etc.)
     for category in tqdm(categories):
         cat_dir = os.path.join(fp_data, category)
-        
+
         if not os.path.exists(cat_dir):
             print(f"\nThe '{category}' folder does not exist.")
             continue
@@ -187,6 +191,7 @@ def count_nonwatertight(fp_data: str = "data_cleaned"):
 
     return nonWatertight
 
+
 if __name__ == "__main__":
     fp_data = "data"
     fp_data_out = "data_cleaned"
@@ -195,17 +200,18 @@ if __name__ == "__main__":
     # print(f"\nThere are {count_nonwatertight(fp_data)} non-watertight meshes in the dataset before processing.")
 
     # Reorient mesh normals to be consistent
-    ### open3d existing method is not doing anything for some reason. Tried surface reconstruction with poor results.
+    # open3d existing method is not doing anything for some reason. Tried surface reconstruction with poor results.
     # reorient_normals(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
-    
-    # Fill holes 
-    ### Bad register allocation error. I think the legacy version of the triangle meshes used by this method can't handle some of our bigger meshes.
+
+    # Fill holes
+    # Bad register allocation error. I think the legacy version of the triangle meshes used by this method can't handle some of our bigger meshes.
     # fill_holes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
 
     # Stitch mesh holes and clean
-    ### Cleaning method significantly trims some of the meshes. Not worth using.
+    # Cleaning method significantly trims some of the meshes. Not worth using.
     # errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
-    errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories, remeshTargVert=10000, cleanMeshes=False, saveRawInfo = True)
+    errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories,
+                           remeshTargVert=10000, cleanMeshes=False, saveRawInfo=True)
     print(f"{len(errors)} errors found while stitching:\n{errors}")
 
     # print(f"\nThere are {count_nonwatertight(fp_data_out)} non-watertight meshes in the dataset after processing.")

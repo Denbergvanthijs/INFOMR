@@ -237,7 +237,7 @@ def read_meshes(data_folder: str = "data_cleaned", data_folder_output: str = "da
                                          pc_sqr_error_normalized,
                                          som_error_normalized,
                                          max_dim_normalized])
-            
+
         meshset.clear()
         meshset_normalized.clear()
 
