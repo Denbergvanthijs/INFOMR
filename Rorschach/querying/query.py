@@ -5,8 +5,12 @@ import numpy as np
 import open3d as o3d
 import pandas as pd
 import scipy as sp
-from distance_functions import (get_cosine_distance, get_emd,
-                                get_euclidean_distance, get_manhattan_distance)
+from distance_functions import (
+    get_cosine_distance,
+    get_emd,
+    get_euclidean_distance,
+    get_manhattan_distance,
+)
 from tqdm import tqdm
 
 
@@ -57,7 +61,7 @@ def get_all_features(features_path):
                 features.append(row[2:3] + row[5:6] + row[7:8] + row[9:])
                 # features.append(row[2:])
 
-    return mesh_paths, categories, np.array(features)
+    return mesh_paths, categories, np.array(features).astype(float)
 
 
 def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> None:
