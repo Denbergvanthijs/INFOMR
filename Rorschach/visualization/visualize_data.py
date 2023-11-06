@@ -32,51 +32,55 @@ def calc_outliers(data):
 
 
 # Function to create boxplots of number of vertices and faces
-def boxplot(mesh_info, column: str) -> None:
+def boxplot(mesh_info, column: str, fp_save: str) -> None:
     # Load vertice and face counts
     data = mesh_info[column].values
-
-    # Min and max number of faces and vertices
-    # print(min(vertices), min(faces))      16, 16
-    # print(max(vertices), max(faces))      98256, 129881
-
-    # Number of outliers (shapes outside of 4th quartile)
-    # calc_outliers(vertices)      upper whisker: 15032, num. outliers: 247
-    # calc_outliers(faces)         upper whisker: 31986.5, num. outliers: 256
+    total_meshes = len(data)  # Total number of meshes
 
     # Boxplot showing number of vertices and faces
-    fig = plt.figure(figsize=(6, 8))
+    fig, ax = plt.subplots(figsize=(6, 8))
     # X-axis labels off
     plt.boxplot(data, labels=[""])
-    plt.title(f"Boxplot of number of {column.lower()}")
-    plt.ylabel("Count")
+    plt.title(f"Boxplot of number of {column.lower()} per mesh (n={total_meshes})")
+    plt.ylabel(f"Number of {column.lower()}")
+
+    ax.set_axisbelow(True)  # Put grid behind bars
+    ax.grid(axis="y")
+    plt.ylim(0, None)
+
     plt.tight_layout()
-    plt.savefig(f"./figures/boxplot_{column.lower()}.eps")
+    plt.savefig(fp_save, dpi=300)  # Dont save as eps, since opacity will be lost otherwise
 
     # Reset plot for future plotting
     plt.clf()
 
 
 # Function to create 2D histogram of either vertice or face count
-def histogram2D(mesh_info, column, n_bins=15):
+def histogram2D(mesh_info, column, fp_save, n_bins: int = 15) -> None:
     # Calculate the mean of the chosen variable (i.e. "Vertices" or "Faces")
     mean_value = mesh_info[column].mean()
+    total_meshes = len(mesh_info)  # Total number of meshes
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
     # Plot histogram based on variable choice
-    sns.histplot(data=mesh_info, color=UU_BLUE, x=column, bins=n_bins, kde=True, ax=ax)
-    plt.title(f"2D Histogram of number of {column}")
+    sns.histplot(data=mesh_info, color=UU_YELLOW, x=column, bins=n_bins, kde=False, ax=ax)
+    plt.title(f"Histogram of number of {column.lower()} per mesh (n={total_meshes})")
     plt.xlabel(f"Number of {column.lower()}")
-    plt.ylabel("Frequency")
+    plt.ylabel("Number of meshes")
 
     # Add a vertical line at the mean
-    plt.axvline(mean_value, color=UU_RED, linestyle="dashed", label=f"Mean ({mean_value:.2f})")
-    plt.legend()
+    plt.axvline(mean_value, color=UU_RED, linestyle="dashed", label=f"{mean_value:.0f}")
+    plt.legend(title=f"Mean number of {column.lower()}", loc="upper right")
+
+    ax.set_axisbelow(True)  # Put grid behind bars
+    ax.grid(axis="y")
+
+    # Left limit of x-axis set to 0
+    plt.xlim(0, None)
 
     plt.tight_layout()
-    # Dont save as eps, since opacity will be lost otherwise
-    plt.savefig(f"./figures/{column.lower()}_hist.png")
+    plt.savefig(fp_save, dpi=300)  # Dont save as eps, since opacity will be lost otherwise
 
     # Reset plot for future plotting
     plt.clf()
@@ -113,89 +117,95 @@ def histogram3D(mesh_info):
     plt.clf()
 
 
-def class_distribution(mesh_info: pd.DataFrame, top_n: int = 10, fp_out: str = "./figures/class_distribution.eps") -> None:
+def class_distribution(mesh_info: pd.DataFrame, fp_out: str, top_n: int = 10) -> None:
     counts = mesh_info["Class"].value_counts()
-    counts_len = len(counts)
-    counts_mean = counts.mean()
+    counts_len = len(counts)  # Total number of categories
+    counts_mean = counts.mean()  # Mean number of shapes per category for all categories
 
-    # Only top 10 classes
+    # Only top n classes
     counts = counts[:top_n]
 
     # Plot seaborn barplot, class names on y-axis
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.barplot(x=counts.values, y=counts.index, color=UU_YELLOW, ax=ax)
-    plt.title(f"Class distribution of top {top_n} out of {counts_len} classes")
-    plt.xlabel("Number of shapes")
-    plt.ylabel("Class")
+    sns.barplot(x=counts.values, y=counts.index, color=UU_YELLOW, ax=ax, edgecolor="black")
+    plt.title(f"Class distribution of top {top_n} out of {counts_len} categories")
+    plt.xlabel("Number of meshes in category")
+    plt.ylabel("")
 
     # Add counts to each bar
     for c in ax.containers:
-        ax.bar_label(c, fmt=" %.0f", color=UU_RED)
+        ax.bar_label(c, fmt=" %.0f", color="black")
 
     # Plot average count
-    plt.axvline(counts_mean, color=UU_RED, linestyle="dashed", label=f"Mean ({counts_mean:.2f})")
-    plt.legend()
+    plt.axvline(counts_mean, color=UU_RED, linestyle="dashed", label=f"{counts_mean:.2f}")
+    plt.legend(title="Mean number of meshes\nper category", loc="lower right")
 
     plt.tight_layout()
-    plt.savefig(fp_out)
+    plt.savefig(fp_out, dpi=300)
 
     # Reset plot for future plotting
     plt.clf()
 
 
-def class_histogram(mesh_info, every_n: int = 20) -> None:
+def class_histogram(mesh_info, fp_save, every_n: int = 20) -> None:
     fig, ax = plt.subplots(figsize=(8, 6))
 
     data = mesh_info["Class"].value_counts().values
     bins = np.arange(0, data.max() + every_n, every_n)
 
-    ax.hist(data, bins=bins, color=UU_YELLOW, edgecolor=UU_RED, range=(0, data.max() + every_n))
+    ax.hist(data, bins=bins, color=UU_YELLOW, edgecolor="black", range=(0, data.max() + every_n))
     ax.set_xticks(bins)  # Set x-axis ticks
     ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)  # Remove y ticks
 
     # Add counts to each bar
     for c in ax.containers:
-        ax.bar_label(c, fmt="%.0f class(es)", color=UU_RED)
+        ax.bar_label(c, fmt="%.0f categories", color="black")
 
-    plt.title("Histogram of number of shapes in each class")
-    plt.xlabel("Number of shapes in class")
+    plt.title(f"Histogram of number of meshes in each category (|C|={len(data)})")
+    plt.xlabel("Number of meshes in category")
+
+    # Limit x-axis to 0
+    plt.xlim(0, bins[-1])
     plt.tight_layout()
-    plt.savefig("./figures/class_histogram.eps")
+    plt.savefig(fp_save, dpi=300)
 
     # Reset plot for future plotting
     plt.clf()
 
 
-def barycenter_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str) -> None:
-    # Compute barycenter offset histograms
-    offset_bary_count, bins_bary = np.histogram(mesh_info[column], bins="sqrt", range=(0, 1))
+def hist_barycenter(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str,
+                    fp_save: str, hist_range: tuple = (0, 1), sharex: bool = False, sharey: bool = False) -> None:
+    # Compute histograms
+    offset_bary_count, bins_bary = np.histogram(mesh_info[column], bins="sqrt", range=hist_range)
     offset_bary_count_norm, bins_bary_norm = np.histogram(mesh_info_normalized[column], bins="sqrt")
 
     # Change data to percentages
     offset_bary_count = offset_bary_count / offset_bary_count.sum() * 100
     offset_bary_count_norm = offset_bary_count_norm / offset_bary_count_norm.sum() * 100
 
-    print(f"Max offset: {mesh_info['Barycenter offset'].max()}")
-    print(f"Max offset (norm): {mesh_info_normalized['Barycenter offset'].max()}")
+    print(f"Max barycenter offset: {mesh_info['Barycenter offset'].max()}")
+    print(f"Max barycenter offset (normalized): {mesh_info_normalized['Barycenter offset'].max()}")
 
-    fig, axes = plt.subplots(1, 2)
-    axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count, color=UU_YELLOW, edgecolor=UU_RED)
-    axes[0].set_title("Before Normalization")
+    fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
+    axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count, color=UU_YELLOW, edgecolor="black")
+    axes[0].set_title("Before normalization")
     axes[0].set_ylabel("Percentage")
-    axes[0].set_xlabel("\nBarycenter Squared Distance\nfrom Origin")
+    axes[0].set_xlabel("\nBarycenter Squared Distance\nfrom origin")
+    axes[0].set_xlim(0, 1)
 
-    axes[1].hist(bins_bary_norm[:-1], bins_bary_norm, weights=offset_bary_count_norm, color=UU_YELLOW, edgecolor=UU_RED)
-    axes[1].set_title("After Normalization")
+    axes[1].hist(bins_bary_norm[:-1], bins_bary_norm, weights=offset_bary_count_norm, color=UU_YELLOW, edgecolor="black")
+    axes[1].set_title("After normalization")
     axes[1].set_ylabel("Percentage")
-    axes[1].set_xlabel("\nBarycenter Squared Distance\nfrom Origin")
+    axes[1].set_xlabel("\nBarycenter Squared Distance\nfrom origin")
+    axes[1].set_xlim(0, None)
 
     plt.tight_layout()
-    plt.savefig("./figures/barycenter_histogram.eps")
+    plt.savefig(fp_save, dpi=300)
 
     plt.clf()
 
 
-def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str) -> None:
+def hist_max_dim(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, column: str, fp_save: str) -> None:
     # Compute max dim histograms
     max_dim_count, bins_max_dim = np.histogram(mesh_info[column], bins="sqrt", range=(0, 20))
     max_dim_count_norm, bins_max_dim_norm = np.histogram(mesh_info_normalized[column], bins="sqrt")
@@ -204,49 +214,50 @@ def max_dim_hist(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, co
     max_dim_count = max_dim_count / max_dim_count.sum() * 100
     max_dim_count_norm = max_dim_count_norm / max_dim_count_norm.sum() * 100
 
-    max_dim_median = np.median(mesh_info[column])
-    max_dim_sd = np.std(mesh_info[column])
-
     fig, axes = plt.subplots(1, 2)
-    axes[0].hist(bins_max_dim[:-1], bins_max_dim, weights=max_dim_count, color=UU_YELLOW, edgecolor=UU_RED)
-    axes[0].set_title("Before Normalization")
+    axes[0].hist(bins_max_dim[:-1], bins_max_dim, weights=max_dim_count, color=UU_YELLOW, edgecolor="black")
+    axes[0].set_title("Before normalization")
     axes[0].set_ylabel("Percentage")
-    axes[0].set_xlabel("\nBounding Box Longest Dimension")
+    axes[0].set_xlabel("\nLength of longest dimension\nof bounding box")
 
-    axes[1].hist(bins_max_dim_norm[:-1], bins_max_dim_norm, weights=max_dim_count_norm, color=UU_YELLOW, edgecolor=UU_RED)
-    axes[1].set_title("After Normalization")
+    axes[1].hist(bins_max_dim_norm[:-1], bins_max_dim_norm, weights=max_dim_count_norm, color=UU_YELLOW, edgecolor="black")
+    axes[1].set_title("After normalization")
     axes[1].set_ylabel("Percentage")
-    axes[1].set_xlabel("\nBounding Box Longest Dimension")
+    axes[1].set_xlabel("\nLength of longest dimension\nof bounding box")
 
     plt.tight_layout()
-    plt.savefig(f"./figures/hist_{column.lower().replace(' ', '_')}_before_after.eps")
+    plt.savefig(fp_save, dpi=300)
     # plt.show()
 
     plt.clf()
 
 
-def hist_before_after(mesh_info, mesh_info_normalized, column: str, sharex: bool = True, sharey: bool = True) -> None:
+def hist_before_after(mesh_info, mesh_info_normalized, column: str, fp_save,
+                      binrange: tuple = None, sharex: bool = True, sharey: bool = True) -> None:
     data_before = mesh_info[column].values
     data_after = mesh_info_normalized[column].values
 
     fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
-    if column == "Vertices" or column == "Faces":
-        sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent", binrange=(0,100000))
-        sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent", binrange=(0,100000))
-    else:
-        sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent")
-        sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent")
+    sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent", edgecolor="black", bins="sqrt", binrange=binrange)
+    sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent", edgecolor="black", bins="sqrt", binrange=binrange)
 
-    axes[0].set_title("Before normalization")
     axes[0].set_ylabel("Percentage")
     axes[0].set_xlabel(f"\n{column}")
-
-    axes[1].set_title("After normalization")
-    axes[1].set_ylabel("Percentage")
     axes[1].set_xlabel(f"\n{column}")
 
+    # Rotate x-axis labels if column is Vertices or Faces
+    if column in ["Vertices", "Faces"]:
+        axes[0].tick_params(axis="x", rotation=45)
+        axes[1].tick_params(axis="x", rotation=45)
+
+        axes[0].set_title("Before resampling")
+        axes[1].set_title("After resampling")
+    else:
+        axes[0].set_title("Before normalization")
+        axes[1].set_title("After normalization")
+
     plt.tight_layout()
-    plt.savefig(f"./figures/hist_{column.lower().replace(' ', '_')}_before_after.eps")
+    plt.savefig(fp_save, dpi=300)
     # plt.show()
 
     plt.clf()
@@ -279,23 +290,29 @@ if __name__ == "__main__":
     mesh_info = pd.read_csv("./data_cleaned/mesh_info.csv")
     mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
 
-    # 2.2
-    histogram2D(mesh_info_raw, "Vertices")
-    histogram2D(mesh_info_raw, "Faces")
-    boxplot(mesh_info_raw, column="Vertices")
-    boxplot(mesh_info_raw, column="Faces")
-    histogram3D(mesh_info_raw)
-    class_distribution(mesh_info_raw)
-    class_histogram(mesh_info_raw)
+    # 2.2 statistics over whole dataset
+    histogram2D(mesh_info_raw, "Vertices", "./figures/step2/before_processing/hist_vertices.png", n_bins=15)
+    histogram2D(mesh_info_raw, "Faces", "./figures/step2/before_processing/hist_faces.png", n_bins=15)
+    boxplot(mesh_info_raw, column="Vertices", fp_save="./figures/step2/before_processing/boxplot_vertices.png")
+    boxplot(mesh_info_raw, column="Faces", fp_save="./figures/step2/before_processing/boxplot_faces.png")
+    class_distribution(mesh_info_raw, "./figures/step2/before_processing/class_distribution.png", top_n=10)
+    class_histogram(mesh_info_raw, "./figures/step2/before_processing/class_histogram.png", every_n=20)
 
     # 2.5
-    barycenter_hist(mesh_info, mesh_info_normalized, "Barycenter offset")
-    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error")
-    hist_before_after(mesh_info, mesh_info_normalized, "SOM error")
-    boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
-    print("Max dim before / after normalization:")
-    print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
-    print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
-    max_dim_hist(mesh_info, mesh_info_normalized, "Max dim")
-    hist_before_after(mesh_info_raw, mesh_info_normalized, "Vertices")
-    hist_before_after(mesh_info_raw, mesh_info_normalized, "Faces")
+    hist_barycenter(mesh_info, mesh_info_normalized, "Barycenter offset", "./figures/step2/after_processing/hist_bary.png")
+    hist_max_dim(mesh_info, mesh_info_normalized, "Max dim", "./figures/step2/after_processing/hist_max_dim.png")
+    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error", "./figures/step2/after_processing/hist_pca.png")
+    hist_before_after(mesh_info, mesh_info_normalized, "SOM error", "./figures/step2/after_processing/hist_som.png")
+
+    # Uses mesh info raw since only these two columns are present in the raw data
+    hist_before_after(mesh_info_raw, mesh_info_normalized, "Vertices",
+                      "./figures/step2/after_processing/hist_vertices.png", binrange=(0, 100_000))
+    hist_before_after(mesh_info_raw, mesh_info_normalized, "Faces",
+                      "./figures/step2/after_processing/hist_faces.png", binrange=(0, 100_000))
+
+    # Old functions
+    # histogram3D(mesh_info_raw)
+    # boxplot_before_after(mesh_info, mesh_info_normalized, "Max dim")
+    # print("Max dim before / after normalization:")
+    # print(f"Median: {np.median(mesh_info['Max dim'])} / {np.median(mesh_info_normalized['Max dim'])}")
+    # print(f"SD: {np.std(mesh_info['Max dim'])} / {np.std(mesh_info_normalized['Max dim'])}")
