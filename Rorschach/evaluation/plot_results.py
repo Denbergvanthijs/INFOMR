@@ -25,7 +25,7 @@ def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
     plt.ylabel(metric.title())
 
     plt.tight_layout()
-    plt.savefig(f"./Rorschach/evaluation/plots/perclass_{metric_str}_k{k}_{distance_function}.png")
+    plt.savefig(f"./figures/step6/perclass_{metric_str}_k{k}_{distance_function}.png", dpi=300)
     # plt.show()
 
 
@@ -43,7 +43,7 @@ def plot_overall_metric(df, metric):
     ax.grid(axis="y")
 
     plt.tight_layout()
-    plt.savefig(f"./Rorschach/evaluation/plots/overall_{metric.lower().replace(' ', '_')}.png")
+    plt.savefig(f"./figures/step6/overall_{metric.lower().replace(' ', '_')}.png", dpi=300)
     plt.show()
 
 
