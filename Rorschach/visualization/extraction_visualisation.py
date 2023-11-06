@@ -26,7 +26,7 @@ def plot_feat_hist(data: np.ndarray, title: str, feat: str, x_label: str, x_tick
     # plt.show()
 
 
-def plot_hist_grid(df, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000) -> None:
+def plot_hist_grid(df, fp_save: str, n_classes: int = 4, n_bins: int = 10) -> None:
     # Select the n_classes most popular classes
     df = df[df["category"].isin(df["category"].value_counts().index[:n_classes])]
     print(df["category"].value_counts())
@@ -69,7 +69,7 @@ def plot_hist_grid(df, n_classes: int = 4, n_bins: int = 10, n_iter: int = 1_000
         ax.set_xlim(0, n_bins)
 
     plt.tight_layout()
-    plt.savefig(f"./figures/feat_ex/feat_hist_grid.png", dpi=300)
+    plt.savefig(fp_save, dpi=300)
     plt.show()
 
 
@@ -84,14 +84,16 @@ if __name__ == "__main__":
     df = pd.read_csv(fp_data, delimiter=",")
 
     # Plot grid before filtering
-    plot_hist_grid(df, n_classes, n_bins=n_bins, n_iter=n_iter)
+    plot_hist_grid(df, "./figures/step3/feat_hist_grid.png", n_classes, n_bins=n_bins)
 
+    # Old code/unused figures
     # Round to 1 decimal place for floating point errors like 0.300004
-    x_ranges = [range(0, 181, 18)] + 4 * [np.arange(0, 1.1, 0.1).round(1)]
-    features = ["a3", "d1", "d2", "d3", "d4"]
-    labels = ["Angle (degrees)", "Distance (unit size)", "Distance (unit size)",
-              "Square root distance (unit size)", "Cube root distance (unit size)"]
-    for feat, label, x_range in tzip(features, labels, x_ranges):
-        data = df.filter(regex=f"{feat}_").to_numpy()
-        title = f"{feat.upper()} histogram of all classes combined ({n_bins} bins, {n_iter} iterations)"
-        plot_feat_hist(data, title, feat, label, x_range, n_bins=n_bins)
+    # x_ranges = [range(0, 181, 18)] + 4 * [np.arange(0, 1.1, 0.1).round(1)]
+    # features = ["a3", "d1", "d2", "d3", "d4"]
+    # labels = ["Angle (degrees)", "Distance (unit size)", "Distance (unit size)",
+    #           "Square root distance (unit size)", "Cube root distance (unit size)"]
+
+    # for feat, label, x_range in tzip(features, labels, x_ranges):
+    #     data = df.filter(regex=f"{feat}_").to_numpy()
+    #     title = f"{feat.upper()} histogram of all classes combined ({n_bins} bins, {n_iter} iterations)"
+    #     plot_feat_hist(data, title, feat, label, x_range, n_bins=n_bins)
