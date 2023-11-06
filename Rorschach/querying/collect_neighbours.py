@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pandas as pd
 import scipy as sp
 from query import (
@@ -19,6 +20,8 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
     filepaths, categories, features = get_all_features(fp_features)
+    features = np.nan_to_num(features, nan=0, posinf=0, neginf=0)
+
     filepaths = [os.path.join(fp_data, fp) for fp in filepaths]
 
     for distance_function in distance_functions:
@@ -47,8 +50,11 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
             if distance_function == "knn":
                 # Use KDTree in order to perform KNN
                 knn_distances, knn_indices = kdtree.query(query_features, k=k)
+
                 # Remove infinite distances
-                knn_distances = knn_distances[knn_distances != float("inf")]
+                idx = knn_distances != float("inf")  # Select indices
+                knn_distances = knn_distances[idx]  # Remove from both arrays
+                knn_indices = knn_indices[idx]
 
                 for indice, distance in zip(knn_indices, knn_distances):
                     match_filename, match_category = filepaths[indice].split("/")[-1], categories[indice]
@@ -60,15 +66,24 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
 
             else:  # Use custom distance functions for querying
                 # List of distances between query shape and all other shapes in the dataset
-                sorted_scores = [distance_function(query_features, feature) for feature in features]
+                scores = [distance_function(query_features, feature) for feature in features]
+                scores = np.array(scores, dtype=float)
+                indices = np.arange(len(scores))
 
-                # Sort scores and keep track of its idx
-                idx = sorted(range(len(sorted_scores)), key=lambda k: sorted_scores[k])  # Get indices of sorted scores
-                sorted_scores = sorted(sorted_scores)  # Sort scores in ascending order
+                # Remove infinite distances
+                idx = scores != float("inf")
+                scores = scores[idx]
+                indices = indices[idx]
 
-                # Limit to first k to equal amount of shapes in that category
-                returned_meshes = [filepaths[i] for i in idx[:k]]  # Limit to first k to equal amount of shapes in that category
+                # Sort scores in ascending order but keep track of the original indices
+                sorted_indices, sorted_scores = zip(*sorted(zip(indices, scores), key=lambda x: x[1]))
+
+                # Select k nearest neighbours
+                sorted_indices = sorted_indices[:k]
                 sorted_scores = sorted_scores[:k]
+
+                # Get the k nearest neighbours
+                returned_meshes = [filepaths[i] for i in sorted_indices]
 
                 for returned_mesh, score in zip(returned_meshes, sorted_scores):
                     match_filename = returned_mesh.split("/")[-1]
