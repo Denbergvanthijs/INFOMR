@@ -348,7 +348,7 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 if __name__ == "__main__":
     fp_data = "./data_normalized"
     fp_csv_out = "./Rorschach/feature_extraction/features_new.csv"
-    n_categories = 2  # len(categories)
+    n_categories = 69  # len(categories)
     n_iter = 1_000
     n_bins = 10
 

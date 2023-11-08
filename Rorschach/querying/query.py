@@ -64,6 +64,16 @@ def get_all_features(features_path):
     return mesh_paths, categories, np.array(features).astype(float)
 
 
+# Custom distance function 
+def compute_distance(query_features, current_features, distance_function, weights=[]):
+    # Compute distance over all elementary features
+    elementary_distance = distance_function(query_features[:6], current_features[:6])
+    # Compute EMD over all shape property features (histograms)
+    shape_distance = get_emd(query_features[6:], current_features[6:])
+    total_distance = elementary_distance + shape_distance
+    return total_distance
+
+
 def visualize(fp_meshes: str, width: int = 1280, height: int = 720,
               mesh_show_wireframe: bool = True, mesh_show_back_face: bool = True, window_name: str = "Rorschach CBSR System") -> None:
     # Function for loading and visualizing meshes
