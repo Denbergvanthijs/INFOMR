@@ -359,7 +359,7 @@ def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalizatio
     return normalization_params
 
 
-def normalize_mesh(feature_vector: np.ndarray, normalization_params: dict, normalization_type: str = "z-score") -> np.ndarray:
+def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: dict, normalization_type: str = "z-score") -> np.ndarray:
     if normalization_type == "min-max":
         min_vals = np.array(list(normalization_params["min"].values()))
         max_vals = np.array(list(normalization_params["max"].values()))

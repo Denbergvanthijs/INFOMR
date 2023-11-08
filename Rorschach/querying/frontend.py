@@ -1,3 +1,4 @@
+import json
 import os
 
 import numpy as np
@@ -5,7 +6,10 @@ import pandas as pd
 import streamlit as st
 from pymeshlab import MeshSet
 
-from Rorschach.feature_extraction.extraction import calculate_mesh_features
+from Rorschach.feature_extraction.extraction import (
+    calculate_mesh_features,
+    normalize_mesh_features,
+)
 from Rorschach.preprocessing.patch_meshes import clean_mesh
 from Rorschach.preprocessing.preprocess import normalize_mesh
 from Rorschach.querying.query import (
@@ -24,6 +28,11 @@ n_iter = 1_000
 n_bins = 10
 features_path = "./Rorschach/feature_extraction/features.csv"
 fp_data = "./data_normalized/"
+fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
+normalization_type = "z-score"
+
+with open(fp_normalization_params, "r") as f:
+    normalization_params = json.load(f)
 
 # Retrieve features from the returned meshes
 df_features = pd.read_csv(features_path)
@@ -83,6 +92,10 @@ if uploaded_file is not None:
         features_query = calculate_mesh_features("./frontend_temp/temp_mesh_normalized.obj", "unknown/temp_mesh_normalized.obj",
                                                  "unknown", n_iter=n_iter, n_bins=n_bins)
         features_query = features_query[2:].astype(float).tolist()  # Extract only the features, not the filename and category
+
+        # Normalize the feature vector, after removing text but before removing unwanted features
+        features_query = normalize_mesh_features(features_query, normalization_params, normalization_type=normalization_type).tolist()
+
         # Ignore volume, compactness, convexity, rectangularity, thus ignore indices 1, 2, 4, 6
         features_query = features_query[:1] + features_query[3:4] + features_query[5:6] + features_query[7:]
 

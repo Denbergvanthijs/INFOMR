@@ -7,7 +7,6 @@ from query import (
     get_all_features,
     get_cosine_distance,
     get_euclidean_distance,
-    get_features,
     get_k_closest,
     get_manhattan_distance,
 )
@@ -81,7 +80,7 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
 
 if __name__ == "__main__":
     # Query shape/mesh
-    fp_features = "./Rorschach/feature_extraction/features.csv"
+    fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
 
     # Note that wasserstein_distance == EMD
