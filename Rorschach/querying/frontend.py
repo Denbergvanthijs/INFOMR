@@ -1,9 +1,15 @@
 import os
 
+import numpy as np
 import pandas as pd
 import streamlit as st
+
 from Rorschach.feature_extraction.extraction import calculate_mesh_features
-from Rorschach.querying.query import query, return_dist_func
+from Rorschach.querying.query import get_all_features, get_k_closest, return_dist_func
+
+# Set numpy random seed for reproducibility
+# Otherwise A1 and D1 to D4 will change
+np.random.seed(42)
 
 TOP_N = 5
 n_iter = 1_000
@@ -15,10 +21,14 @@ fp_data = "./data_normalized/"
 df_features = pd.read_csv(features_path)
 # Preprocess filename column to only keep the filename
 df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
+df_features = df_features.drop(["volume", "compactness", "convexity", "rectangularity"], axis=1)
+
+# Get all features from the dataset
+filepaths, categories, features = get_all_features(features_path)
 
 
 def show_mesh(fp_mesh):
-    command = f'"C:/Program Files/Python38/python.exe" ./code/meshViewer.py --mesh_path {fp_mesh} --visualization_method shade'
+    command = f'"C:/Program Files/Python38/python.exe" ./Rorschach/visualization/meshViewer.py --mesh_path {fp_mesh} --visualization_method shade'
     os.system(command)
 
 
@@ -53,6 +63,8 @@ if uploaded_file is not None:
         # Load features of query mesh
         features_query = calculate_mesh_features("temp_mesh.obj", "unknown/temp_mesh.obj", "unknown", n_iter=n_iter, n_bins=n_bins)
         features_query = features_query[2:].astype(float).tolist()  # Extract only the features, not the filename and category
+        # Ignore volume, compactness, convexity, rectangularity, thus ignore indices 1, 2, 4, 6
+        features_query = features_query[:1] + features_query[3:4] + features_query[5:6] + features_query[7:]
 
         # Write features to dataframe, use columns from df_features
         df_query = pd.DataFrame([features_query], columns=df_features.columns[2:])
@@ -64,7 +76,9 @@ if uploaded_file is not None:
     st.subheader(f"Top {TOP_N} similar meshes:")
     with st.spinner("Retrieving similar meshes..."):
         # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
-        retrieved_meshes, retrieved_scores = query(features_query, df_features, fp_data, distance_function=distance_func)
+        retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N, distance_function=distance_func)
+        retrieved_meshes = [filepaths[i] for i in retrieved_indices]
+
         st.write(f"Total of {len(retrieved_meshes)} meshes retrieved. Closest distance: {retrieved_scores[0]:.4f}")
 
         # Split list into category and filename

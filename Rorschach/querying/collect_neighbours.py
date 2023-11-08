@@ -8,6 +8,7 @@ from query import (
     get_cosine_distance,
     get_euclidean_distance,
     get_features,
+    get_k_closest,
     get_manhattan_distance,
 )
 from scipy.stats import wasserstein_distance
@@ -61,22 +62,7 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
                     matches.append(matched_mesh)
 
             else:  # Use custom distance functions for querying
-                # List of distances between query shape and all other shapes in the dataset
-                scores = [distance_function(query_features, feature) for feature in features]
-                scores = np.array(scores, dtype=float)
-                indices = np.arange(len(scores))
-
-                # Remove infinite distances
-                idx = scores != float("inf")
-                scores = scores[idx]
-                indices = indices[idx]
-
-                # Sort scores in ascending order but keep track of the original indices
-                sorted_indices, sorted_scores = zip(*sorted(zip(indices, scores), key=lambda x: x[1]))
-
-                # Select k nearest neighbours
-                sorted_indices = sorted_indices[:k]
-                sorted_scores = sorted_scores[:k]
+                sorted_scores, sorted_indices = get_k_closest(query_features, features, k=k, distance_function=distance_function)
 
                 # Get the k nearest neighbours
                 matched_fps = [filepaths[i] for i in sorted_indices]

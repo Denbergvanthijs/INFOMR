@@ -11,7 +11,7 @@ from distance_functions import (
     get_euclidean_distance,
     get_manhattan_distance,
 )
-from tqdm import tqdm
+from scipy.stats import wasserstein_distance
 
 
 def get_features(df_features, fp_mesh) -> list:
@@ -37,7 +37,7 @@ def get_features(df_features, fp_mesh) -> list:
 
     # TODO: add checking for duplicates
 
-    return df_temp.values.tolist()[0]  # Return first row as list
+    return df_temp.values[0]  # Return first row as list
 
 
 def get_all_features(features_path):
@@ -80,70 +80,43 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
     o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
 
 
-# Given a query shape, create an ordered list of meshes from the dataset based on EMD
-def query(features_query, df_features, fp_data, distance_function=get_emd, enable_tqdm=True):
-    '''Compute the Earth Mover's distance (EMD) between a given query mesh and all meshes in a given dataset. 
-    Create an ordered list of meshes based on calculated EMD values. Visualize the query mesh and a specific mesh 
-    from the ordered mesh list.
+def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, distance_function: callable) -> tuple:
+    """Retrieves the k closest neighbours of a query mesh from a dataset of meshes
 
-    The mesh list is ordered in ascending order. This means that the mesh with the lowest EMD is located up front, 
-    while the mesh with the highest EMD is located at the back.
+    :param query_features: List of features of the query mesh
+    :type query_features: np.ndarray
+    :param features: List of list of features of all meshes in the dataset
+    :type features: np.ndarray
+    :param k: Number of nearest neighbours to retrieve
+    :type k: int
+    :param distance_function: Distance function to use
+    :type distance_function: callable
 
-    Specifically:
-    - index 0: the best match based on EMD (i.e. the query mesh itself as EMD = 0).
-    - index -1: the worst match based on EMD (i.e. mesh with highest EMD).
-    '''
-    if not os.path.exists(fp_data):
-        raise Exception(f"\nThe '{fp_data}' folder does not exist.")
+    :return: Tuple of lists of scores and indices of the k nearest neighbours
+    :rtype: tuple
+    """
+    # List of distances between query mesh and all other meshes in the dataset
+    scores = [distance_function(query_features, feature) for feature in features]
+    scores = np.array(scores, dtype=float)
+    indices = np.arange(len(scores))
 
-    # EMD does not work with negative values, so check if any value of the features is negative
-    if min(features_query) < 0 and distance_function == get_emd:
-        raise Exception(f"The query mesh features contain negative values. EMD cannot be computed.")
+    # Remove infinite distances
+    idx = scores != float("inf")
+    scores = scores[idx]
+    indices = indices[idx]
 
-    # Create dict to store pairs of meshes and their Eath Mover's distance to query mesh
-    distance_dict = {}
+    # Sort scores in ascending order but keep track of the original indices
+    sorted_indices, sorted_scores = zip(*sorted(zip(indices, scores), key=lambda x: x[1]))
 
-    # Iterate over all classes in the dataset (desklamp, bottle etc.)
-    categories = next(os.walk(fp_data))[1]
-    for category in tqdm(categories, desc="Categories", disable=not enable_tqdm):
-        fp_cat_in = os.path.join(fp_data, category)  # Input folder
+    # Select k nearest neighbours
+    sorted_indices = sorted_indices[:k]
+    sorted_scores = sorted_scores[:k]
 
-        if not os.path.exists(fp_cat_in):
-            print(f"\nThe '{category}' folder does not exist.")
-            continue
-
-        # Iterate over all mesh files in current subfolder
-        for filename in tqdm(os.listdir(fp_cat_in), desc=f"Category: {category}", disable=not enable_tqdm):
-
-            # Obtain full mesh path and load features
-            mesh_path = os.path.join(fp_data, category + "/" + filename)
-            features_mesh = get_features(df_features, mesh_path)
-
-            # Check if features of current mesh are present
-            if features_mesh is None:
-                print(f"\nNo features found for '{mesh_path}'. Skipping this mesh.")
-                continue
-
-            # NOTE: only use EMD if the minimal possible value of a feature is positive (>= 0)
-            # Check if any value of the features is negative
-            if min(features_mesh) < 0:
-                print(f"\nNegative feature value(s) found for '{mesh_path}'. Skipping this mesh.")
-                continue
-
-            # If features of current mesh are present, compute and store EMD to query mesh
-            distance_dict[mesh_path] = distance_function(features_query, features_mesh)
-
-    # Sort the mesh filenames based on the distance function
-    sorted_distance_dict = sorted(distance_dict.items(), key=lambda item: item[1], reverse=False)
-
-    # Store the sorted filenames
-    sorted_meshes, sorted_scores = zip(*sorted_distance_dict)
-
-    return sorted_meshes, sorted_scores
+    return sorted_scores, sorted_indices
 
 
 def return_dist_func(selector: str):
-    selector_dict = {"EMD": get_emd,
+    selector_dict = {"EMD": wasserstein_distance,
                      "Manhattan": get_manhattan_distance,
                      "Euclidean": get_euclidean_distance,
                      "Cosine": get_cosine_distance}
@@ -156,45 +129,51 @@ if __name__ == "__main__":
     fp_query = "./data_normalized/Bird/D00089.obj"
     fp_features = "./Rorschach/feature_extraction/features.csv"
     fp_data = "./data_normalized/"
+    k = 3  # Number of nearest neighbours to retrieve
 
     distance_function = get_emd
     # Flag for using KNN instead of custom distance functions
     knn = True
 
+    # Retrieve features from the returned meshes
     df_features = pd.read_csv(fp_features)
     # Preprocess filename column to only keep the filename
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
+    features_query = get_features(df_features, fp_query)  # First get features, before dropping columns
+    df_features = df_features.drop(["volume", "compactness", "convexity", "rectangularity"], axis=1)
+
+    # Get all features from the dataset
+    filepaths, categories, features = get_all_features(fp_features)
+
     # Load feature vector for query shape and db shapes
-    features_query = get_features(df_features, fp_query)
     if features_query is None:
         raise Exception(f"\nNo features found for '{fp_query}'.")
     print(f"Total of {len(features_query)} features extracted from query mesh.")
 
     # Use KNN for querying
     if knn:
-        # Number of nearest neighbours to retrieve
-        k = 3
-
-        paths, labels, features = get_all_features(fp_features)
-
         # Use KDTree in order to perform KNN
         kdtree = sp.spatial.KDTree(features)
         knn_distances, knn_indices = kdtree.query(features_query, k=k)
 
-        results = [("    " + str(paths[i]) + f" (label='{labels[i]}', distance={dist})") for i, dist in zip(knn_indices, knn_distances)]
+        results = [("    " + str(filepaths[i]) + f" (label='{categories[i]}', distance={dist})")
+                   for i, dist in zip(knn_indices, knn_distances)]
         print(f"{k} nearest neighbors for shape {fp_query}:\n",
               "\n".join(results), sep="")
 
         # Visualize results
-        visualize([fp_query] + ["data_normalized/" + paths[i] for i in knn_indices])
+        meshes_to_visualize = [fp_query] + ["data_normalized/" + filepaths[i] for i in knn_indices]
 
     else:  # Use custom distance functions for querying
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        returned_meshes, sorted_scores = query(features_query, df_features, fp_data, distance_function=distance_function)
+        sorted_scores, sorted_indices = get_k_closest(features_query, features, k=k, distance_function=distance_function)
+        returned_meshes = ["./data_normalized/" + filepaths[i] for i in sorted_indices]
+
         print(f"Number of returned meshes: {len(returned_meshes)}")
         print(f"Best match: {returned_meshes[0]} with EMD: {sorted_scores[0]:3f}")
 
         # Visualize query mesh and desired mesh from returned mesh list (index 0: best match, index -1: worst match)
-        meshes_to_visualize = [fp_query, returned_meshes[0]]
-        visualize(meshes_to_visualize)
+        meshes_to_visualize = [fp_query] + returned_meshes
+
+    visualize(meshes_to_visualize)
