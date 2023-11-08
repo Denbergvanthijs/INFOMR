@@ -25,19 +25,19 @@ def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
     plt.ylabel(metric.title())
 
     plt.tight_layout()
-    plt.savefig(f"./figures/step6/perclass_{metric_str}_k{k}_{distance_function}.png", dpi=300)
+    plt.savefig(f"./figures/step6/perclass/perclass_{metric_str}_k{k}_{distance_function}.png", dpi=300)
     # plt.show()
 
 
 def plot_overall_metric(df, metric):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 4))
     ax = sns.barplot(x="Distance function", y=metric, data=df, ax=ax, palette=UU_PAL, edgecolor="black", hue="k")
     # plt.title(f"{metric.title()} per distance function")
     plt.ylabel(metric.title())
 
     # Change legend
     handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles, ["k=3", "k=|c|"], title="Top k meshes to consider")
+    ax.legend(handles, ["k=3", "k=|c|"], title="Top k meshes to consider", bbox_to_anchor=(1.05, 1))
 
     ax.set_axisbelow(True)  # Put grid behind bars
     ax.grid(axis="y")
@@ -52,4 +52,5 @@ if __name__ == "__main__":
     df = pd.read_csv(fp_results)
     print(df.head())
 
+    plot_overall_metric(df, "F1 score")
     plot_overall_metric(df, "F2 score")

@@ -19,6 +19,10 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
     # Preprocess filename column to only keep the filename
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
+    # Get number of meshes in each category
+    # This is to limit the number of retrieved meshes
+    ks = df_features["category"].value_counts().to_dict()
+
     filepaths, categories, features = get_all_features(fp_features)
     features = np.nan_to_num(features, nan=0, posinf=0, neginf=0)
 
@@ -38,17 +42,12 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
         kdtree = sp.spatial.KDTree(features)  # Build KDTree for KNN only once
 
         matches = []
-        for query_filepath, query_category in tzip(filepaths, categories, desc=f"Querying with {csv_postfix}"):
-            # Load feature vector for query shape and db shapes
-            query_features = get_features(df_features, query_filepath)
-            if query_features is None:
-                raise Exception(f"\nNo features found for '{query_filepath}'.")
-
-            # Number of nearest neighbours is equal amount of shapes in that category
-            k = df_features[df_features["category"] == query_category].shape[0]
+        for query_filepath, query_category, query_features in tzip(filepaths, categories, features, desc=f"Querying with {csv_postfix}"):
+            k = ks[query_category]  # Number of retrieved meshes is equal amount of meshes in that category
 
             if distance_function == "knn":
                 # Use KDTree in order to perform KNN
+                # NOTE: no guarantee that exactly k neighbours will be found, could be less
                 knn_distances, knn_indices = kdtree.query(query_features, k=k)
 
                 # Remove infinite distances
@@ -58,11 +57,8 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
 
                 for indice, distance in zip(knn_indices, knn_distances):
                     match_filename, match_category = filepaths[indice].split("/")[-1], categories[indice]
-                    matched_shape = [query_filepath, query_category, match_filename, match_category, distance]
-                    matches.append(matched_shape)
-
-                # if len(knn_distances) < k:  # If number of neighbours is less than k
-                #     print(f"Only {len(knn_distances)} neighbours found for {query_filepath}.")
+                    matched_mesh = [query_filepath, query_category, match_filename, match_category, distance]
+                    matches.append(matched_mesh)
 
             else:  # Use custom distance functions for querying
                 # List of distances between query shape and all other shapes in the dataset
@@ -83,10 +79,10 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
                 sorted_scores = sorted_scores[:k]
 
                 # Get the k nearest neighbours
-                returned_meshes = [filepaths[i] for i in sorted_indices]
+                matched_fps = [filepaths[i] for i in sorted_indices]
 
-                for returned_mesh, score in zip(returned_meshes, sorted_scores):
-                    match_filename = returned_mesh.split("/")[-1]
+                for matched_fp, score in zip(matched_fps, sorted_scores):
+                    match_filename = matched_fp.split("/")[-1]
                     match_category = df_features[df_features["filename"] == match_filename]["category"].values[0]
 
                     matched_shape = [query_filepath, query_category, match_filename, match_category, score]
