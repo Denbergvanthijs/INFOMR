@@ -66,9 +66,13 @@ def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
         # Thus, the shapes at (database size minus k) are always 0
         y_true = np.concatenate((np.ones(query_size), not_retrieved_data))
 
-        # 1 for all retrieved shapes that have the correct category, 0 for all shapes not retrieved correctly
-        # And 0 for all shapes that are not retrieved at all
-        y_pred = np.concatenate((np.where(y_pred == query_class, 1, 0), not_retrieved_data))
+        # y_retrieved should be same length as y_true
+        y_retrieved = np.where(y_pred == query_class, 1, 0).astype(int)  # Number of retrieved shapes with either 0 or 1: TP + FP
+        y_missing_ones = np.ones(query_size - y_retrieved.sum(), dtype=int)  # Number of relevant shapes that are not retrieved: FN
+        y_zeros = np.zeros(not_retrieved_size - y_missing_ones.sum(), dtype=int)  # Number of shapes not retrieved that should be 0: TN
+        y_non_retrieved = np.concatenate((y_missing_ones, y_zeros))  # Non-retrieved shapes are either TN or FN
+
+        y_pred = np.concatenate((y_retrieved, y_non_retrieved))
 
         cm = confusion_matrix(y_true, y_pred, labels=[0, 1])  # Set labels as 0 and 1 to guarantee correct order
         TN, FP, FN, TP = cm.ravel()
