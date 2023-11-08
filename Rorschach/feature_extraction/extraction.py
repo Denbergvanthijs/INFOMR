@@ -1,9 +1,11 @@
 import itertools
+import json
 import math
 import os
 
 import numpy as np
 import open3d as o3d
+import pandas as pd
 from pymeshlab import MeshSet
 from scipy.spatial import ConvexHull
 from tqdm import tqdm
@@ -310,9 +312,76 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
     # df.to_csv('./Rorschach/feature_extraction/features.csv', index=False)
 
 
+def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalization_type: str = "z-score") -> dict:
+    df_features = pd.read_csv(fp_in)
+    print(df_features.head())
+
+    # Split into textual and numerical data
+    df_text = df_features.iloc[:, :2]  # Filename and category
+    df_features = df_features.iloc[:, 2:]  # Features
+
+    # Set NaNs to mean of column, while ignoring 0
+    df_mean = df_features[df_features > 0].mean(axis=0)  # Calculate mean on positive values
+    df_features = df_features.fillna(df_mean)
+
+    # Set negative values to mean of column, while ignoring 0
+    df_features = df_features.mask(df_features < 0, df_mean, axis=1)
+
+    # Change the parameters that fall outside the inner 95% percentile to the 95% percentile
+    # This is done to avoid outliers
+    df_features = df_features.clip(lower=df_features.quantile(0.025),
+                                   upper=df_features.quantile(0.975), axis=1)
+
+    # Save original min and max values for later use
+    if normalization_type == "min-max":
+        normalization_params = {"min": df_features.min().to_dict(),
+                                "max": df_features.max().to_dict()}
+
+        df_features = (df_features - df_features.min()) / (df_features.max() - df_features.min())
+
+    elif normalization_type == "z-score":
+        normalization_params = {"mean": df_features.mean().to_dict(),
+                                "std": df_features.std().to_dict()}
+
+        # Normalize features with Z-score normalization
+        df_features = (df_features - df_features.mean()) / df_features.std()
+
+    else:
+        raise ValueError(f"Unknown normalization type: {normalization_type}. Should be 'min-max' or 'z-score'.")
+
+    with open(fp_normalization_params, "w") as fp:
+        json.dump(normalization_params, fp, indent=4)
+
+    # Combine dataframes back to original format
+    df_normalized = pd.concat([df_text, df_features], axis=1)
+    df_normalized.to_csv(fp_out, index=False)
+
+    return normalization_params
+
+
+def normalize_mesh(feature_vector: np.ndarray, normalization_params: dict, normalization_type: str = "z-score") -> np.ndarray:
+    if normalization_type == "min-max":
+        min_vals = np.array(list(normalization_params["min"].values()))
+        max_vals = np.array(list(normalization_params["max"].values()))
+        feature_vector = (feature_vector - min_vals) / (max_vals - min_vals)
+
+    elif normalization_type == "z-score":
+        mean_vals = np.array(list(normalization_params["mean"].values()))
+        std_vals = np.array(list(normalization_params["std"].values()))
+
+        feature_vector = (feature_vector - mean_vals) / std_vals
+
+    else:
+        raise ValueError(f"Unknown normalization type: {normalization_type}. Should be 'min-max' or 'z-score'.")
+
+    return feature_vector
+
+
 if __name__ == "__main__":
     fp_data = "./data"
     fp_csv_out = "./Rorschach/feature_extraction/features.csv"
+    fp_csv_out_normalized = "./Rorschach/feature_extraction/features_normalized.csv"
+    fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
     n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
@@ -337,6 +406,9 @@ if __name__ == "__main__":
     # D3: square root of area of triangle given by 3 random vertices
     # D4: cube root of volume of tetrahedron formed by 4 random vertices
 
-    extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
+    # extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
+
+    # Params to save min-max values for later use for new data
+    normalisation_params = normalize_features(fp_csv_out, fp_csv_out_normalized, fp_normalization_params, normalization_type="z-score")
 
     # Complete feature extraction takes 30 minutes 45 seconds (Riemer), 29 minutes 20 seconds after adjustments (diameter etc.)
