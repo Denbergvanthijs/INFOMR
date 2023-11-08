@@ -116,10 +116,11 @@ def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, dist
 
 
 def return_dist_func(selector: str):
-    selector_dict = {"EMD": wasserstein_distance,
-                     "Manhattan": get_manhattan_distance,
+    selector_dict = {"Manhattan": get_manhattan_distance,
                      "Euclidean": get_euclidean_distance,
-                     "Cosine": get_cosine_distance}
+                     "Cosine": get_cosine_distance,
+                     "EMD": wasserstein_distance,
+                     "KNN": "KNN"}
 
     return selector_dict[selector]
 

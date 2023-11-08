@@ -40,8 +40,9 @@ st.set_page_config(page_title="Rorschach CBSR",
 # Sidebar
 st.sidebar.title("Configuration")
 TOP_N = st.sidebar.slider("Number of similar meshes to retrieve:", min_value=1, max_value=10, value=TOP_N, step=1)
-distance_func = st.sidebar.selectbox("Distance function:", ("EMD", "Manhattan", "Euclidean", "Cosine"))
-distance_func = return_dist_func(distance_func)
+distance_func = st.sidebar.selectbox("Distance function:", ("Manhattan", "Euclidean", "Cosine", "EMD", "KNN"))
+
+distance_func = return_dist_func(distance_func)  # Convert string to callable
 
 uploaded_file = st.sidebar.file_uploader("Choose an object...", type=[".obj",])
 
@@ -75,8 +76,16 @@ if uploaded_file is not None:
 
     st.subheader(f"Top {TOP_N} similar meshes:")
     with st.spinner("Retrieving similar meshes..."):
-        # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
-        retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N, distance_function=distance_func)
+        if distance_func == "KNN":
+            # Only import if needed, for speed increase
+            from scipy.spatial import KDTree
+
+            kdtree = KDTree(features)  # Build KDTree for KNN
+            retrieved_scores, retrieved_indices = kdtree.query(features_query, k=TOP_N)
+        else:
+            # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
+            retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N, distance_function=distance_func)
+
         retrieved_meshes = [filepaths[i] for i in retrieved_indices]
 
         st.write(f"Total of {len(retrieved_meshes)} meshes retrieved. Closest distance: {retrieved_scores[0]:.4f}")
