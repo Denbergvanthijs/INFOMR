@@ -7,61 +7,71 @@ from sklearn.metrics import confusion_matrix
 from tqdm.contrib import tzip
 
 
-def get_query_results(results_path):
+def get_query_results(results_path: str) -> tuple:
+    """Gets all pairs of query category and match categories from the results csv file.
+
+    :param results_path: Path to the csv file containing the results of the query
+    :type results_path: str
+    :return: List of nd.arrays containing the categories of the matches for each query, and a list of the ground truths
+    :rtype: tuple
+    """
     # columns: query_filepath,query_category,match_filepath,match_category,distance
     df = pd.read_csv(results_path, sep=",")
 
     # For each query, get a list of the matched categories
-    query_results = {}
-    ground_truth = {}
+    query_results = []
+    ground_truths = []
     for query_filepath in df["query_filepath"].unique():
+        # Get all rows that match the current query
+        df_query = df[df["query_filepath"] == query_filepath]
         # The categories of all matches for the current query
-        query_results[query_filepath] = list(df[df["query_filepath"] == query_filepath]["match_category"])
+        all_matches = df_query["match_category"].tolist()
         # The category of the current query, select single value from df
-        ground_truth[query_filepath] = df[df["query_filepath"] == query_filepath]["query_category"].iloc[0]
+        gts_match = df_query["query_category"].unique()
 
-    return query_results, ground_truth
+        # Check that there is only a single ground truth for the query
+        if gts_match.shape[0] > 1:
+            raise ValueError(f"Multiple ground truths for query {query_filepath}")
+
+        # Save to lists, order is important
+        query_results.append(np.array(all_matches))
+        ground_truths.append(gts_match[0])  # Select single value from array
+
+    return query_results, np.array(ground_truths)
 
 
 def calculate_perclass(query_results_path: str, plot_type: str, k: int = None):
-    query_results, ground_truth = get_query_results(query_results_path)
+    query_results, ground_truths = get_query_results(query_results_path)
 
     # Compute metrics
     TPs = defaultdict(list)
     FPs = defaultdict(list)
     TNs = defaultdict(list)
     FNs = defaultdict(list)
-    database_size = len(query_results)
 
-    for i, (y_pred, query_class) in enumerate(zip(list(query_results.values()), ground_truth.values())):
+    database_size = len(query_results)  # Number of shapes in database
+
+    for y_pred, query_class in zip(query_results, ground_truths):
         if k is not None:  # Limit to the top k results, results are already sorted by distance
             y_pred = y_pred[:k]
 
         # Number of meshes retrieved, should ideally be equal to k
         # But can be less if k > category size or if there are not enough matches in the database
-        query_size = len(y_pred)
+        query_size = y_pred.shape[0]
+
+        not_retrieved_size = database_size - query_size  # Number of shapes not retrieved
+        not_retrieved_data = np.zeros(not_retrieved_size)  # Create array of zeros for shapes not retrieved
 
         # 1 for all retrieved shapes, 0 for all shapes not retrieved
         # Thus, the shapes at (database size minus k) are always 0
-        y_true = [1] * query_size + [0] * (database_size - query_size)
+        y_true = np.concatenate((np.ones(query_size), not_retrieved_data))
 
         # 1 for all retrieved shapes that have the correct category, 0 for all shapes not retrieved correctly
         # And 0 for all shapes that are not retrieved at all
-        y_pred = [1 if pred == query_class else 0 for pred in y_pred] + [0] * (database_size - len(y_pred))
+        y_pred = np.concatenate((np.where(y_pred == query_class, 1, 0), not_retrieved_data))
 
         cm = confusion_matrix(y_true, y_pred, labels=[0, 1])  # Set labels as 0 and 1 to guarantee correct order
         TN, FP, FN, TP = cm.ravel()
-
-        # Get true positives/negatives and false positives/negatives
-        # TP = y_pred.count(query_class)  # Correctly labelled as 'member of query class'
-        # Incorrectly labelled as 'member of query class' (i.e. all returned shapes that are not part of the query class)
-        # FP = query_size - TP
-        # Correctly labelled as 'NOT a member of query class'
-        # i.e. all shapes in the database not part of query class that were not returned
-        # TN = database_size - query_size - FP
-        # Incorrectly labelled as 'NOT a member of query class' (i.e. all shapes in the database that are
-        # a part of the query class but were not returned)
-        # FN = query_size - TP
 
         # Store performance metric results
         for metric, value in zip([TPs, FPs, TNs, FNs], [TP, FP, TN, FN]):
@@ -93,8 +103,8 @@ def calculate_metrics(TPs, FPs, TNs, FNs):
 
         results = [precision, recall, accuracy, sensitivity, specificity, f1_score, f2_score]
 
-        results = [np.nan_to_num(r, nan=0, neginf=0, posinf=0) for r in results]  # Replace NaNs with 0
-        results = [np.mean(r) for r in results]  # Average over all shapes in category
+        results = np.nan_to_num(results, nan=0, neginf=0, posinf=0)  # Replace NaNs with 0
+        results = np.mean(results, axis=1)  # Average over all queried shapes of a category
 
         d[key] = results
 
