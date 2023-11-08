@@ -5,7 +5,12 @@ import pandas as pd
 import streamlit as st
 
 from Rorschach.feature_extraction.extraction import calculate_mesh_features
-from Rorschach.querying.query import get_all_features, get_k_closest, return_dist_func
+from Rorschach.querying.query import (
+    get_all_features,
+    get_k_closest,
+    return_dist_func,
+    visualize,
+)
 
 # Set numpy random seed for reproducibility
 # Otherwise A1 and D1 to D4 will change
@@ -123,9 +128,15 @@ if uploaded_file is not None:
 
     # Add button for each returned mesh to display it
     st.sidebar.subheader("Display meshes:")
-    st.sidebar.write("Click on the button to display the mesh.")
+    st.sidebar.write(f"Click on the button to display the query mesh and the top {TOP_N} similar meshes.")
 
-    for cat, file in zip(df_returned["Category"].tolist(), df_returned["Filename"].tolist()):
-        if st.sidebar.button(f"{cat} - {file}"):
-            fp_mesh = os.path.join(fp_data, cat, file)
-            show_mesh(fp_mesh)
+    # Add toggle for showing the wireframe or not
+    show_wireframe = st.sidebar.checkbox("Show wireframe", value=False, key="wireframe")
+
+    if st.sidebar.button(f"Visualize the top {TOP_N} meshes"):
+        # filename is category + filename
+        meshes_to_visualize = fp_data + df_returned["Category"] + "/" + df_returned["Filename"]
+        meshes_to_visualize = ["temp_mesh.obj"] + meshes_to_visualize.tolist()
+        window_name = f"Rorschach CBSR System - Query mesh and top {TOP_N} similar meshes"
+
+        visualize(meshes_to_visualize, mesh_show_wireframe=show_wireframe, window_name=window_name)
