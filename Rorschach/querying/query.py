@@ -64,7 +64,8 @@ def get_all_features(features_path):
     return mesh_paths, categories, np.array(features).astype(float)
 
 
-def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> None:
+def visualize(fp_meshes: str, width: int = 1280, height: int = 720,
+              mesh_show_wireframe: bool = True, mesh_show_back_face: bool = True, window_name: str = "Rorschach CBSR System") -> None:
     # Function for loading and visualizing meshes
 
     # Load meshes
@@ -77,7 +78,9 @@ def visualize(fp_meshes, width=1280, height=720, mesh_show_wireframe=True) -> No
         mesh.translate((i * 0.7 + int(i > 0), 0, 0))
         meshes.append(mesh)
 
-    o3d.visualization.draw_geometries(meshes, width=width, height=height, mesh_show_wireframe=mesh_show_wireframe)
+    o3d.visualization.draw_geometries(meshes, width=width, height=height,
+                                      mesh_show_wireframe=mesh_show_wireframe,
+                                      window_name=window_name, mesh_show_back_face=mesh_show_back_face)
 
 
 def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, distance_function: callable) -> tuple:

@@ -52,5 +52,10 @@ if __name__ == "__main__":
     df = pd.read_csv(fp_results)
     print(df.head())
 
+    plot_overall_metric(df, "Precision")
+    plot_overall_metric(df, "Recall")
+    plot_overall_metric(df, "Accuracy")
+    plot_overall_metric(df, "Sensitivity")
+    plot_overall_metric(df, "Specificity")
     plot_overall_metric(df, "F1 score")
     plot_overall_metric(df, "F2 score")

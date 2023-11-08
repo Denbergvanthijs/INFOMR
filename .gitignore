@@ -2,7 +2,7 @@
 data/*
 data_cleaned/*
 data_normalized/*
-temp_mesh.obj
+frontend_temp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
