@@ -3,8 +3,11 @@ import os
 import numpy as np
 import pandas as pd
 import streamlit as st
+from pymeshlab import MeshSet
 
 from Rorschach.feature_extraction.extraction import calculate_mesh_features
+from Rorschach.preprocessing.patch_meshes import clean_mesh
+from Rorschach.preprocessing.preprocess import normalize_mesh
 from Rorschach.querying.query import (
     get_all_features,
     get_k_closest,
@@ -59,18 +62,32 @@ st.write(f"Upload a shape. The {TOP_N} most similar shapes will be shown below."
 if uploaded_file is not None:
     mesh = uploaded_file.read()
 
-    with open("temp_mesh.obj", "wb") as f:
+    # Check if folder exists, if not create it
+    if not os.path.exists("./frontend_temp"):
+        os.mkdir("./frontend_temp")
+
+    with open("./frontend_temp/temp_mesh.obj", "wb") as f:
         f.write(mesh)
 
     st.divider()
     st.subheader("Query mesh:")
 
     with st.spinner("Extracting features from query mesh..."):
+        v_no, f_no = clean_mesh("./frontend_temp/temp_mesh.obj", "./frontend_temp/temp_mesh_cleaned.obj",
+                                cleanMeshes=False, remeshTargVert=10_000)
+        meshset = MeshSet()
+        meshset.load_new_mesh("./frontend_temp/temp_mesh_cleaned.obj")
+        meshset = normalize_mesh(meshset)
+        meshset.save_current_mesh("./frontend_temp/temp_mesh_normalized.obj")
         # Load features of query mesh
-        features_query = calculate_mesh_features("temp_mesh.obj", "unknown/temp_mesh.obj", "unknown", n_iter=n_iter, n_bins=n_bins)
+        features_query = calculate_mesh_features("./frontend_temp/temp_mesh_normalized.obj", "unknown/temp_mesh_normalized.obj",
+                                                 "unknown", n_iter=n_iter, n_bins=n_bins)
         features_query = features_query[2:].astype(float).tolist()  # Extract only the features, not the filename and category
         # Ignore volume, compactness, convexity, rectangularity, thus ignore indices 1, 2, 4, 6
         features_query = features_query[:1] + features_query[3:4] + features_query[5:6] + features_query[7:]
+
+        # Set NaN, +inf and -inf to 0
+        features_query = np.nan_to_num(features_query, nan=0, posinf=0, neginf=0)
 
         # Write features to dataframe, use columns from df_features
         df_query = pd.DataFrame([features_query], columns=df_features.columns[2:])
@@ -87,6 +104,11 @@ if uploaded_file is not None:
 
             kdtree = KDTree(features)  # Build KDTree for KNN
             retrieved_scores, retrieved_indices = kdtree.query(features_query, k=TOP_N)
+
+            # Remove inf distances
+            idx = retrieved_scores != float("inf")
+            retrieved_scores = retrieved_scores[idx]
+            retrieved_indices = retrieved_indices[idx]
         else:
             # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
             retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N, distance_function=distance_func)
@@ -136,7 +158,7 @@ if uploaded_file is not None:
     if st.sidebar.button(f"Visualize the top {TOP_N} meshes"):
         # filename is category + filename
         meshes_to_visualize = fp_data + df_returned["Category"] + "/" + df_returned["Filename"]
-        meshes_to_visualize = ["temp_mesh.obj"] + meshes_to_visualize.tolist()
+        meshes_to_visualize = ["./frontend_temp/temp_mesh_normalized.obj"] + meshes_to_visualize.tolist()
         window_name = f"Rorschach CBSR System - Query mesh and top {TOP_N} similar meshes"
 
         visualize(meshes_to_visualize, mesh_show_wireframe=show_wireframe, window_name=window_name)

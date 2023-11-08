@@ -57,10 +57,43 @@ def reorient_normals(fp_data: str, fp_data_out: str = "data_cleaned", n_categori
             o3d.io.write_triangle_mesh(fp_mesh_out, reconstructed_mesh)
 
 
+def clean_mesh(fp_mesh: str, fp_mesh_out: str, cleanMeshes: bool = True, remeshTargVert: int = 0) -> tuple:
+    meshset = MeshSet()
+    meshset.load_new_mesh(fp_mesh)  # Load mesh
+
+    mesh = meshset.current_mesh()
+    v_no = mesh.vertex_number()  # Number of vertices before cleaning
+    f_no = mesh.face_number()  # Number of faces before cleaning
+
+    # Clean mesh
+    if cleanMeshes:
+        vertices = mesh.vertex_matrix()
+        faces = mesh.face_matrix()
+        vclean, fclean = pymeshfix.clean_from_arrays(vertices, faces)
+
+        # Check for empty mesh
+        if vclean.size == 0 or fclean.size == 0:
+            # Keep original mesh in dataset and do not overwrite the mesh variable
+            errors.append(f"{fp_mesh} has {vclean.size} vertices and {fclean.size} faces.")
+        else:
+            # Create new mesh from cleaned vertices and faces
+            mesh = Mesh(vclean, fclean)
+            meshset.add_mesh(mesh)
+
+    # Remeshing
+    if remeshTargVert > 0:
+        if v_no < remeshTargVert * 0.5:
+            meshset.meshing_isotropic_explicit_remeshing(targetlen=AbsoluteValue(0.02), iterations=4)
+
+    # Save cleaned mesh
+    meshset.save_current_mesh(fp_mesh_out)
+
+    # Return number of vertices and faces before cleaning
+    return v_no, f_no
+
+
 def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_categories: int = 0,
                   remeshTargVert=0, cleanMeshes=True, saveRawInfo=False) -> list:
-    meshset = MeshSet()
-
     categories = next(os.walk(fp_data))[1]
     print(f"Reading {n_categories} categories from {fp_data}...")
 
@@ -85,38 +118,10 @@ def refine_meshes(fp_data: str = "data", fp_data_out: str = "data_cleaned", n_ca
             fp_mesh = os.path.join(fp_cat_in, filename)  # Input mesh file
             fp_mesh_out = os.path.join(fp_cat_out, filename)  # Output mesh file
 
-            # Load mesh
-            meshset.load_new_mesh(fp_mesh)
-            mesh = meshset.current_mesh()
-            v_no = mesh.vertex_number()
-            f_no = mesh.face_number()
+            # Number of vertices and faces before cleaning
+            v_no, f_no = clean_mesh(fp_mesh, fp_mesh_out, cleanMeshes=cleanMeshes, remeshTargVert=remeshTargVert)
 
             mesh_info.append([filename, category, v_no, f_no])
-
-            # Clean mesh
-            if cleanMeshes:
-                vertices = mesh.vertex_matrix()
-                faces = mesh.face_matrix()
-                vclean, fclean = pymeshfix.clean_from_arrays(vertices, faces)
-
-                # Check for empty mesh
-                if vclean.size == 0 or fclean.size == 0:
-                    # Keep original mesh in dataset and do not overwrite the mesh variable
-                    errors.append(f"{filename} has {vclean.size} vertices and {fclean.size} faces.")
-                else:
-                    # Create new mesh from cleaned vertices and faces
-                    mesh = Mesh(vclean, fclean)
-                    meshset.add_mesh(mesh)
-
-            # Remeshing
-            if remeshTargVert > 0:
-                if v_no < remeshTargVert * 0.5:
-                    meshset.meshing_isotropic_explicit_remeshing(targetlen=AbsoluteValue(0.02), iterations=4)
-
-            # Save cleaned mesh
-            meshset.save_current_mesh(fp_mesh_out)
-
-        meshset.clear()
 
     if saveRawInfo:
         # Save mesh info in a CSV file
@@ -211,7 +216,7 @@ if __name__ == "__main__":
     # Cleaning method significantly trims some of the meshes. Not worth using.
     # errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories)
     errors = refine_meshes(fp_data=fp_data, fp_data_out=fp_data_out, n_categories=n_categories,
-                           remeshTargVert=10000, cleanMeshes=False, saveRawInfo=True)
+                           remeshTargVert=10_000, cleanMeshes=False, saveRawInfo=True)
     print(f"{len(errors)} errors found while stitching:\n{errors}")
 
     # print(f"\nThere are {count_nonwatertight(fp_data_out)} non-watertight meshes in the dataset after processing.")
