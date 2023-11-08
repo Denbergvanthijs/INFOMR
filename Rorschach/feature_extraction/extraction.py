@@ -317,6 +317,10 @@ if __name__ == "__main__":
     n_iter = 1_000
     n_bins = 10
 
+    # Set numpy random seed for reproducibility
+    # Otherwise A1 and D1 to D4 will change
+    np.random.seed(42)
+
     ''' Global features '''
     # Surface area of mesh
     # Mesh volume
