@@ -57,14 +57,13 @@ def get_all_features(features_path):
                 mesh_paths.append(row[0])
                 # Second element is the category label (Humanoid, Vase, etc.)
                 categories.append(row[1])
-                # The remainder of the row are the features (excluding 'volume', 'compactness', 'convexity', and 'rectangularity' for now)
-                features.append(row[2:3] + row[5:6] + row[7:8] + row[9:])
-                # features.append(row[2:])
+                # The remainder of the row are the features
+                features.append(row[2:])
 
     return mesh_paths, categories, np.array(features).astype(float)
 
 
-# Custom distance function 
+# Custom distance function
 def compute_distance(query_features, current_features, distance_function, weights=[]):
     # Compute distance over all elementary features
     elementary_distance = distance_function(query_features[:6], current_features[:6])

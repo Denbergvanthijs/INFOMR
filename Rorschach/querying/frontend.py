@@ -39,7 +39,6 @@ with open(fp_normalization_params, "r") as f:
 df_features = pd.read_csv(features_path)
 # Preprocess filename column to only keep the filename
 df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
-df_features = df_features.drop(["volume", "compactness", "convexity", "rectangularity"], axis=1)
 
 # Get all features from the dataset
 filepaths, categories, features = get_all_features(features_path)
@@ -97,10 +96,6 @@ if uploaded_file is not None:
         # Normalize the feature vector, after removing text but before removing unwanted features
         features_query = normalize_mesh_features(features_query, normalization_params, normalization_type=normalization_type,
                                                  ignore_last=ignore_last)
-
-        # Ignore volume, compactness, convexity, rectangularity, thus ignore indices 1, 2, 4, 6
-        features_query = list(features_query)  # Need to convert to list to be able to remove elements
-        features_query = features_query[:1] + features_query[3:4] + features_query[5:6] + features_query[7:]
 
         # Set NaN, +inf and -inf to 0
         features_query = np.nan_to_num(features_query, nan=0, posinf=0, neginf=0)
