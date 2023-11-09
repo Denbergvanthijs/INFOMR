@@ -53,9 +53,9 @@ def visualize(mesh_path: str, visualization_method: str, width: int = 1280, heig
 
     # Visualize the mesh
     if visualization_method == "shade":
-        o3d.visualization.draw_geometries([mesh_frame,mesh], width=width, height=height, window_name=window_name)
+        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name)
     elif visualization_method == "wired":
-        o3d.visualization.draw_geometries([mesh_frame,mesh], width=width, height=height, window_name=window_name, mesh_show_wireframe=True)
+        o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name, mesh_show_wireframe=True)
     else:
         raise IndexError("No acceptable visualization method was given. Please enter either 'shade' or 'wired' as an argument.")
 

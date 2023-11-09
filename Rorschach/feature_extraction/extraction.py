@@ -7,11 +7,11 @@ import numpy as np
 import open3d as o3d
 import pandas as pd
 from pymeshlab import MeshSet
-from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull, Delaunay
 from tqdm import tqdm
 
 
-def compute_area_volume(mesh) -> tuple:
+def compute_area(mesh) -> tuple:
     """Compute the area and volume of a mesh
 
     :param mesh: Mesh to compute area and volume of
@@ -22,19 +22,47 @@ def compute_area_volume(mesh) -> tuple:
     # Compute mesh area and volume
     area = mesh.get_surface_area()
 
-    if mesh.is_watertight():  # Only compute volume if mesh is watertight
-        volume = mesh.get_volume()
-    else:
-        volume = -1
+    # if mesh.is_watertight():  # Only compute volume if mesh is watertight
+    #     volume = mesh.get_volume()
+    # else:
+    #     volume = -1
 
-    return area, volume
+    return area
+
+
+# Compute volume of convex hull of a mesh
+def compute_convex_hull_volume(vertices):
+    convex_hull = ConvexHull(vertices)
+    hull_volume = convex_hull.volume
+    return hull_volume
+
+
+# def tetrahedron_volume(a, b, c, d):
+#     return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
+
+
+# def compute_convex_hull_volume(pts):
+#     ch = ConvexHull(pts)
+#     dt = Delaunay(pts[ch.vertices])
+#     tets = dt.points[dt.simplices]
+#     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1],
+#                                      tets[:, 2], tets[:, 3]))
+
+
+# Compute the Oriented Bounding Box (obb) and return its volume
+def compute_obb_volume(mesh):
+    # aabb = mesh.get_axis_aligned_bounding_box()
+    # aabb_volume = aabb.volume()
+    obb = mesh.get_oriented_bounding_box()
+    obb_volume = obb.volume()
+    return obb_volume
 
 
 # Compute compactness of a mesh (based on mesh area and volume)
 def compute_compactness(area, volume):
     # Return -1 if volume is invalid due to previous error
-    if volume == -1:
-        return -1
+    # if volume == -1:
+    #     return -1
 
     compactness = (area ** 1.5) / (36 * math.pi * (volume ** 0.5))
     return compactness
@@ -80,14 +108,7 @@ def compute_eccentricity(vertices):
 
 
 # Compute 3D rectangularity of mesh (shape volume divided by OBB volume)
-def compute_rectangularity(mesh, shape_volume):
-    # Obtain oriented bounding box (OBB)
-    obb = mesh.get_oriented_bounding_box()
-
-    # Obtain OBB volume
-    obb_volume = obb.volume()
-
-    # Compute rectangularity
+def compute_rectangularity(shape_volume, obb_volume):
     rectangularity = shape_volume / obb_volume
     return rectangularity
 
@@ -245,15 +266,18 @@ def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_i
     barycenter = measures["barycenter"]
 
     # Compute global features
-    area, volume = compute_area_volume(mesh_o3d)
-    compactness = compute_compactness(area, volume)
+    area = compute_area(mesh_o3d)
+    hull_volume = compute_convex_hull_volume(vertices)
+    obb_volume = compute_obb_volume(mesh_o3d)
+    compactness = compute_compactness(area, hull_volume)
     diameter = compute_diameter(vertices, barycenter)
-    convexity = compute_convexity(vertices, volume)
+    # convexity = compute_convexity(vertices, hull_volume)
     eccentricity = compute_eccentricity(vertices)
-    rectangularity = compute_rectangularity(mesh_o3d, volume)
+    rectangularity = compute_rectangularity(hull_volume, obb_volume)
 
     # Store global features as well as filename and category
-    global_features = np.array([full_filename, category, area, volume, compactness, diameter, convexity, eccentricity, rectangularity])
+    global_features = np.array([full_filename, category, area, hull_volume, obb_volume,
+                               compactness, diameter, eccentricity, rectangularity])
 
     # Compute shape property features
     a3 = compute_a3_hist(vertices, n_iter=n_iter, n_bins=n_bins).round(3)  # Round to 3 decimal places
@@ -270,7 +294,10 @@ def calculate_mesh_features(fp_mesh: str, full_filename: str, category: str, n_i
 
 
 def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_iter: int = 1_000, n_bins: int = 10) -> None:
+    fails = []
+
     categories = next(os.walk(fp_data))[1]
+    print(categories)
     n_categories = len(categories) if not n_categories else n_categories
     print(f"Reading {n_categories} categories from {fp_data}...")
 
@@ -289,8 +316,14 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             full_filename = f"{category}/{filename}"
 
             # Calculate features of current mesh
-            mesh_features = calculate_mesh_features(fp_mesh, full_filename, category, n_iter=n_iter, n_bins=n_bins)
-            all_features.append(mesh_features)
+            try:
+                mesh_features = calculate_mesh_features(fp_mesh, full_filename, category, n_iter=n_iter, n_bins=n_bins)
+                all_features.append(mesh_features)
+            except:
+                print('fail')
+                print(fp_mesh)
+                fails.append(fp_mesh)
+                continue
 
     hists = ","
     for feature in ["a3", "d1", "d2", "d3", "d4"]:
@@ -298,8 +331,10 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
 
     # Save data to CSV
     header = "filename,category,"
-    header += "surface_area,volume,compactness,diameter,convexity,eccentricity,rectangularity"
+    header += "surface_area,hull_volume,obb_volume,compactness,diameter,eccentricity,rectangularity"
     header += hists[:-1]  # Remove last comma
+
+    print(fails)
 
     # Comments='' removes the '#' character from the header
     np.savetxt(fp_csv_out, all_features, delimiter=",", fmt="%s", header=header, comments="")
@@ -396,10 +431,12 @@ def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: di
 
 
 if __name__ == "__main__":
-    fp_data = "./data"
+
+    fp_data = "./data_normalized"
     fp_csv_out = "./Rorschach/feature_extraction/features.csv"
     fp_csv_out_normalized = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
+
     n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
