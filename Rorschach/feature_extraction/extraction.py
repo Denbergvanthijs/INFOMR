@@ -431,12 +431,10 @@ def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: di
 
 
 if __name__ == "__main__":
-
     fp_data = "./data_normalized"
     fp_csv_out = "./Rorschach/feature_extraction/features.csv"
     fp_csv_out_normalized = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
-
     n_categories = 0  # len(categories)
     n_iter = 1_000
     n_bins = 10
