@@ -312,7 +312,8 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
     # df.to_csv('./Rorschach/feature_extraction/features.csv', index=False)
 
 
-def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalization_type: str = "z-score") -> dict:
+def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalization_type: str = "z-score",
+                       ignore_last: int = None) -> dict:
     df_features = pd.read_csv(fp_in)
     print(df_features.head())
 
@@ -321,11 +322,16 @@ def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalizatio
     df_features = df_features.iloc[:, 2:]  # Features
 
     # Set NaNs to mean of column, while ignoring 0
-    df_mean = df_features[df_features > 0].mean(axis=0)  # Calculate mean on positive values
-    df_features = df_features.fillna(df_mean)
+    df_features = df_features.fillna(df_features[df_features > 0].mean(axis=0))
+
+    # If provided, remove last n columns since they are probably histograms which should not be normalized
+    # But do fill NaNs first
+    if ignore_last is not None:
+        df_hist = df_features.iloc[:, -ignore_last:]  # Select last n columns
+        df_features = df_features.iloc[:, :-ignore_last]  # Select all but last n columns
 
     # Set negative values to mean of column, while ignoring 0
-    df_features = df_features.mask(df_features < 0, df_mean, axis=1)
+    df_features = df_features.mask(df_features < 0, df_features[df_features > 0].mean(axis=0), axis=1)
 
     # Change the parameters that fall outside the inner 95% percentile to the 95% percentile
     # This is done to avoid outliers
@@ -353,15 +359,24 @@ def normalize_features(fp_in: str, fp_out: str, fp_out_params: str, normalizatio
         json.dump(normalization_params, fp, indent=4)
 
     # Combine dataframes back to original format
+    if ignore_last is not None:  # Restore histograms back to dataframe
+        df_features = pd.concat([df_features, df_hist], axis=1)
+
     df_normalized = pd.concat([df_text, df_features], axis=1)
     df_normalized.to_csv(fp_out, index=False)
 
     return normalization_params
 
 
-def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: dict, normalization_type: str = "z-score") -> np.ndarray:
+def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: dict, normalization_type: str = "z-score",
+                            ignore_last: int = None) -> np.ndarray:
+    # If provided, remove last n columns since they are probably histograms which should not be normalized
+    if ignore_last is not None:
+        feature_hist = feature_vector[-ignore_last:]
+        feature_vector = feature_vector[:-ignore_last]
+
     if normalization_type == "min-max":
-        min_vals = np.array(list(normalization_params["min"].values()))
+        min_vals = np.array(list(normalization_params["min"].values()))  # TODO: guarantee same order
         max_vals = np.array(list(normalization_params["max"].values()))
         feature_vector = (feature_vector - min_vals) / (max_vals - min_vals)
 
@@ -373,6 +388,9 @@ def normalize_mesh_features(feature_vector: np.ndarray, normalization_params: di
 
     else:
         raise ValueError(f"Unknown normalization type: {normalization_type}. Should be 'min-max' or 'z-score'.")
+
+    if ignore_last is not None:  # Restore histograms back to feature vector
+        feature_vector = np.concatenate((feature_vector, feature_hist))
 
     return feature_vector
 
@@ -409,6 +427,8 @@ if __name__ == "__main__":
     # extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
 
     # Params to save min-max values for later use for new data
-    normalisation_params = normalize_features(fp_csv_out, fp_csv_out_normalized, fp_normalization_params, normalization_type="z-score")
+    ignore_last = n_bins * 5  # Ignore last 5 columns (A1 and D1 to D4)
+    normalisation_params = normalize_features(fp_csv_out, fp_csv_out_normalized, fp_normalization_params,
+                                              normalization_type="z-score", ignore_last=ignore_last)
 
     # Complete feature extraction takes 30 minutes 45 seconds (Riemer), 29 minutes 20 seconds after adjustments (diameter etc.)

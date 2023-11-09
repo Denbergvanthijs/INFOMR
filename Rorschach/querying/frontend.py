@@ -26,10 +26,11 @@ np.random.seed(42)
 TOP_N = 5
 n_iter = 1_000
 n_bins = 10
-features_path = "./Rorschach/feature_extraction/features.csv"
+features_path = "./Rorschach/feature_extraction/features_normalized.csv"
 fp_data = "./data_normalized/"
 fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
 normalization_type = "z-score"
+ignore_last = n_bins * 5  # n bins for each of the 5 histograms
 
 with open(fp_normalization_params, "r") as f:
     normalization_params = json.load(f)
@@ -91,12 +92,14 @@ if uploaded_file is not None:
         # Load features of query mesh
         features_query = calculate_mesh_features("./frontend_temp/temp_mesh_normalized.obj", "unknown/temp_mesh_normalized.obj",
                                                  "unknown", n_iter=n_iter, n_bins=n_bins)
-        features_query = features_query[2:].astype(float).tolist()  # Extract only the features, not the filename and category
+        features_query = features_query[2:].astype(float)  # Extract only the features, not the filename and category
 
         # Normalize the feature vector, after removing text but before removing unwanted features
-        features_query = normalize_mesh_features(features_query, normalization_params, normalization_type=normalization_type).tolist()
+        features_query = normalize_mesh_features(features_query, normalization_params, normalization_type=normalization_type,
+                                                 ignore_last=ignore_last)
 
         # Ignore volume, compactness, convexity, rectangularity, thus ignore indices 1, 2, 4, 6
+        features_query = list(features_query)  # Need to convert to list to be able to remove elements
         features_query = features_query[:1] + features_query[3:4] + features_query[5:6] + features_query[7:]
 
         # Set NaN, +inf and -inf to 0
