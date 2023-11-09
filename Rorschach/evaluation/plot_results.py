@@ -44,7 +44,7 @@ def plot_overall_metric(df, metric):
 
     plt.tight_layout()
     plt.savefig(f"./figures/step6/overall_{metric.lower().replace(' ', '_')}.png", dpi=300)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == "__main__":
