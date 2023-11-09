@@ -11,7 +11,7 @@ from scipy.spatial import ConvexHull, Delaunay
 from tqdm import tqdm
 
 
-def compute_area(mesh) -> tuple:
+def compute_area(mesh) -> float:
     """Compute the area and volume of a mesh
 
     :param mesh: Mesh to compute area and volume of
@@ -31,26 +31,15 @@ def compute_area(mesh) -> tuple:
 
 
 # Compute volume of convex hull of a mesh
-def compute_convex_hull_volume(vertices):
+def compute_convex_hull_volume(vertices) -> float:
     convex_hull = ConvexHull(vertices)
     hull_volume = convex_hull.volume
+
     return hull_volume
 
 
-# def tetrahedron_volume(a, b, c, d):
-#     return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
-
-
-# def compute_convex_hull_volume(pts):
-#     ch = ConvexHull(pts)
-#     dt = Delaunay(pts[ch.vertices])
-#     tets = dt.points[dt.simplices]
-#     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1],
-#                                      tets[:, 2], tets[:, 3]))
-
-
 # Compute the Oriented Bounding Box (obb) and return its volume
-def compute_obb_volume(mesh):
+def compute_obb_volume(mesh) -> float:
     # aabb = mesh.get_axis_aligned_bounding_box()
     # aabb_volume = aabb.volume()
     obb = mesh.get_oriented_bounding_box()
@@ -59,7 +48,7 @@ def compute_obb_volume(mesh):
 
 
 # Compute compactness of a mesh (based on mesh area and volume)
-def compute_compactness(area, volume):
+def compute_compactness(area, volume) -> float:
     # Return -1 if volume is invalid due to previous error
     # if volume == -1:
     #     return -1
@@ -69,17 +58,17 @@ def compute_compactness(area, volume):
 
 
 # Compute the diameter of a mesh
-def compute_diameter(vertices, barycenter):
+def compute_diameter(vertices, barycenter) -> float:
     # Calculate distance from center to all vertices
     distances = np.linalg.norm(vertices - barycenter, axis=1)
 
-    # Calculate diameter as twice the distance of center to furthest vertice
+    # Calculate diameter as twice the distance of center to furthest vertex
     diameter = 2 * np.max(distances)
     return diameter
 
 
 # Compute convexity of a mesh (shape volume over convex hull volume)
-def compute_convexity(vertices, shape_volume):
+def compute_convexity(vertices, shape_volume) -> float:
     # Return -1 if there are not enough vertices or not minimal 4 unique x coordinates
     if vertices.shape[0] < 4 or len(np.unique(vertices[:, 0])) < 4:
         return -1
@@ -94,7 +83,7 @@ def compute_convexity(vertices, shape_volume):
 
 
 # Compute eccentricity of a mesh (ratio of largest to smallest eigenvalues of covariance matrix)
-def compute_eccentricity(vertices):
+def compute_eccentricity(vertices) -> float:
     # Compute covariance matrix and corresponding eigenvalues
     cov_matrix = np.cov(vertices, rowvar=False)
     eigenvalues, _ = np.linalg.eig(cov_matrix)
@@ -108,7 +97,7 @@ def compute_eccentricity(vertices):
 
 
 # Compute 3D rectangularity of mesh (shape volume divided by OBB volume)
-def compute_rectangularity(shape_volume, obb_volume):
+def compute_rectangularity(shape_volume, obb_volume) -> float:
     rectangularity = shape_volume / obb_volume
     return rectangularity
 
@@ -319,8 +308,8 @@ def extract_features(fp_data: str,  fp_csv_out: str, n_categories: int = 0, n_it
             try:
                 mesh_features = calculate_mesh_features(fp_mesh, full_filename, category, n_iter=n_iter, n_bins=n_bins)
                 all_features.append(mesh_features)
-            except:
-                print('fail')
+            except exception as e:
+                print(f"Error: {e}")
                 print(fp_mesh)
                 fails.append(fp_mesh)
                 continue
