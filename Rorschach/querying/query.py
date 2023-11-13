@@ -28,8 +28,7 @@ def get_features(df_features, fp_mesh) -> list:
     df_temp = df_features[df_features["filename"] == filename]
     df_temp = df_temp[df_temp["category"] == category]
 
-    # Drop filename, category, volume, compactness, convexity, and rectangularity columns
-    # df_temp = df_temp.drop(["filename", "category", "volume", "compactness", "convexity", "rectangularity"], axis=1)
+    # Drop filename, category
     df_temp = df_temp.drop(["filename", "category"], axis=1)
     df_temp = df_temp.astype(float)
 
@@ -58,8 +57,9 @@ def get_all_features(features_path):
                 mesh_paths.append(row[0])
                 # Second element is the category label (Humanoid, Vase, etc.)
                 categories.append(row[1])
-                # The remainder of the row are the features
-                features.append(row[2:])
+                # The remainder of the row are the features (excluding 'volume', 'compactness', 'convexity', and 'rectangularity' for now)
+                features.append(row[2:3] + row[5:6] + row[7:8] + row[9:])
+                # features.append(row[2:])
 
     return mesh_paths, categories, np.array(features).astype(float)
 
