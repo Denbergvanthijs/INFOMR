@@ -136,7 +136,7 @@ if __name__ == "__main__":
     results_columns = ["Precision", "Recall", "Accuracy", "Sensitivity", "Specificity", "F1 score", "F2 score"]
     plot_type = "F2 score"
     column = "Apartment"
-    ks = [3, None]  # Top k results to consider
+    ks = [1, 3, None]  # Top k results to consider
 
     results = []
     for fp, distance_function in tzip(query_results_paths, distance_functions):

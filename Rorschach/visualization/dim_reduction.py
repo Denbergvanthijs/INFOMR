@@ -79,7 +79,7 @@ def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perple
 
 
 if __name__ == "__main__":
-    fp_features = "./Rorschach/feature_extraction/features.csv"
+    fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_out = "./figures/step5/2D_meshes.png"
 
     # Parameters

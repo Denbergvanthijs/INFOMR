@@ -37,7 +37,7 @@ def plot_overall_metric(df, metric):
 
     # Change legend
     handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles, ["k=3", "k=|c|"], title="Top k meshes to consider", bbox_to_anchor=(1.05, 1))
+    ax.legend(handles, ["k=1", "k=3", "k=|c|"], title="Top k meshes to consider", bbox_to_anchor=(1.05, 1))
 
     ax.set_axisbelow(True)  # Put grid behind bars
     ax.grid(axis="y")
