@@ -1,9 +1,11 @@
 import csv
 import os
-
 import numpy as np
+import seaborn as sns
+import colorcet as cc
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
+
 
 
 def get_features(features_path: str) -> tuple:
@@ -28,7 +30,7 @@ def get_features(features_path: str) -> tuple:
                 # Second element is the category label (Humanoid, Vase, etc.)
                 categories.append(row[1])
                 # The remainder of the row are the features (excluding 'volume' and 'compactness' for now)
-                features.append(row[2:3] + row[5:])
+                features.append(row[2:])
 
     return mesh_paths, categories, np.array(features).astype(float)
 
@@ -43,50 +45,46 @@ def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perple
     # Embed feature vectors in lower-dimensional space using T-distributed Stochastic Neighbor Embedding (t-SNE)
     features_embedded = TSNE(n_components=tsne_no_components, perplexity=tsne_perplexity, random_state=42).fit_transform(features)
 
-    categories = categories[:i] + categories[500:500+i] + categories[1000:1000+i] + categories[1500:1500+i]
-    to_stack = (features_embedded[:i], features_embedded[500:500+i], features_embedded[1000:1000+i], features_embedded[1500:1500+i])
-    features_embedded = np.vstack(to_stack)
+    # categories = categories[:i] + categories[500:500+i] + categories[1000:1000+i] + categories[1500:1500+i]
+    # to_stack = (features_embedded[:i], features_embedded[500:500+i], features_embedded[1000:1000+i], features_embedded[1500:1500+i])
+    # features_embedded = np.vstack(to_stack)
 
-    # Create colors map
-    colors_map = {}
-    prev_color = 0
-    for label in categories:
-        if label not in colors_map.keys():
-            colors_map[label] = prev_color + 0.1
-            prev_color += 0.3
+    # Set the figure size
+    plt.figure(figsize=(20, 17))
 
-    # Create colors per class
-    colors = []
-    for label in categories:
-        colors.append(colors_map[label])
-    colors = np.array(colors)
+    # Color palette with 69 distinct colors
+    palette = sns.color_palette(cc.glasbey, n_colors=69)
 
-    # Plot category colors and labels
-    fig, ax = plt.subplots()
-    ax.scatter(features_embedded[:, 0], features_embedded[:, 1], c=colors)
-    for category, x, y in zip(categories, features_embedded[:, 0], features_embedded[:, 1]):
-        ax.annotate(category, (x, y))
+    # Use Seaborn for plotting
+    sns.scatterplot(
+        x=features_embedded[:, 0],
+        y=features_embedded[:, 1],
+        hue=categories,  
+        palette=palette, 
+        s=20
+    )
+
+    # Remove top and right spines
+    sns.despine()
 
     plt.xlabel("t-SNE component 1")
     plt.ylabel("t-SNE component 2")
-
-    # Dont show upper and right spines
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    plt.legend(title='Categories', loc='lower left', fontsize='8')
     plt.tight_layout()
 
+    # Save the plot
     plt.savefig(fp_save, dpi=300)
 
 
 if __name__ == "__main__":
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
-    fp_out = "./figures/step5/2D_meshes.png"
+    fp_out = "./figures/step5/2D_meshes_all.png"
 
     # Parameters
     tsne_no_components = 2
     # Perplexity value / Sigma value (should be between 30-50 according to Alex)
     # It accounts for the number of nearest neighbours that needs to be preserved after dim. reduction
-    tsne_perplexity = 10
+    tsne_perplexity = 25
 
     # Select only a couple of categories for visualization purposes
     n_categories = 7
