@@ -1,4 +1,3 @@
-import csv
 import os
 
 import numpy as np
@@ -7,7 +6,6 @@ import pandas as pd
 import scipy as sp
 from distance_functions import (
     get_cosine_distance,
-    get_emd,
     get_euclidean_distance,
     get_manhattan_distance,
 )
@@ -41,37 +39,36 @@ def get_features(df_features, fp_mesh) -> list:
 
 
 def get_all_features(features_path):
-    mesh_paths = []
-    categories = []
-    features = []
+    if not os.path.exists(features_path):
+        raise Exception(f"\nThe '{features_path}' file does not exist.")
 
-    with open(features_path, newline='') as file:
-        csv_reader = csv.reader(file)
+    df = pd.read_csv(features_path)
 
-        # Skip the first row (header)
-        next(csv_reader)
-
-        for row in csv_reader:
-            if len(row) >= 1:
-                # First element is the mesh path
-                mesh_paths.append(row[0])
-                # Second element is the category label (Humanoid, Vase, etc.)
-                categories.append(row[1])
-                # The remainder of the row are the features (excluding 'volume', 'compactness', 'convexity', and 'rectangularity' for now)
-                features.append(row[2:3] + row[5:6] + row[7:8] + row[9:])
-                # features.append(row[2:])
+    mesh_paths = df["filename"].values
+    categories = df["category"].values
+    features = df.drop(["filename", "category"], axis=1).astype(float).values
 
     return mesh_paths, categories, np.array(features).astype(float)
 
 
 # Custom distance function
-def compute_distance(query_features, current_features, distance_function, weights=[]):
+def compute_distance(query_features, current_features, distance_function, weights=[0.1, 10],
+                     split_idx: int = 7, n_hists: int = 5) -> float:
+    assert len(query_features) == len(
+        current_features), f"Feature vectors not equal: {len(query_features)} != {len(current_features)}."
     # Compute distance over all elementary features
-    elementary_distance = distance_function(query_features[:7], current_features[:7])
+    elementary_distance = distance_function(query_features[:split_idx], current_features[:split_idx])
+
+    assert len(query_features[split_idx:]) % n_hists == 0, f"Number of histogram features not divisible by {n_hists}."
+
+    # Split features into 5 equal groups, assuming elementary features are first and properly indexed
+    histograms_query = np.split(query_features[split_idx:], n_hists)
+    histograms_current = np.split(current_features[split_idx:], n_hists)
+
     # Compute EMD over all shape property features (histograms)
-    shape_distance = get_emd(query_features[7:], current_features[7:])
-    total_distance = elementary_distance/10 + shape_distance*10
-    return total_distance
+    emd_distances = sum([wasserstein_distance(histograms_query[i], histograms_current[i]) for i in range(5)])
+
+    return elementary_distance * weights[0] + emd_distances * weights[1]
 
 
 def visualize(fp_meshes: str, width: int = 1280, height: int = 720,
@@ -140,7 +137,7 @@ def return_dist_func(selector: str):
 if __name__ == "__main__":
     # Query shape/mesh
     fp_query = "./data_normalized/Knife/D01077.obj"
-    fp_features = "./Rorschach/feature_extraction/features_new.csv"
+    fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
     k = 5  # Number of nearest neighbours to retrieve
 
@@ -154,7 +151,6 @@ if __name__ == "__main__":
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
 
     features_query = get_features(df_features, fp_query)  # First get features, before dropping columns
-    # df_features = df_features.drop(["volume", "compactness", "convexity", "rectangularity"], axis=1)
 
     # Get all features from the dataset
     filepaths, categories, features = get_all_features(fp_features)
@@ -180,7 +176,6 @@ if __name__ == "__main__":
 
     else:  # Use custom distance functions for querying
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        print(len(features_query))
         sorted_scores, sorted_indices = get_k_closest(features_query, features, k=k, distance_function=distance_function)
         returned_meshes = ["./data_normalized/" + filepaths[i] for i in sorted_indices]
 
