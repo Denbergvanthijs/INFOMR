@@ -57,7 +57,7 @@ st.set_page_config(page_title="Rorschach CBSR",
 # Sidebar
 st.sidebar.title("Configuration")
 TOP_N = st.sidebar.slider("Number of similar meshes to retrieve:", min_value=1, max_value=10, value=TOP_N, step=1)
-distance_func = st.sidebar.selectbox("Distance function:", ("Manhattan", "Euclidean", "Cosine", "EMD", "KNN"))
+distance_func = st.sidebar.selectbox("Distance function:", ["EMD only", "Manhattan + EMD", "Euclidean + EMD", "Cosine + EMD", "KNN"])
 
 distance_func = return_dist_func(distance_func)  # Convert string to callable
 
