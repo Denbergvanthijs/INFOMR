@@ -22,7 +22,7 @@ def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
     metric_str = slugify(metric)
 
     fig, ax = plt.subplots(figsize=(12, 4))
-    ax = plt.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
+    ax.bar(labels, values, color=UU_YELLOW, width=0.7, edgecolor="black")
     plt.title(f"{metric.title()} per category for the {distance_function} distance function (k={k_str})")
 
     plt.xticks(rotation=90)
@@ -30,6 +30,10 @@ def plot_perclass_metrics(data_dict, metric, distance_function, k=None):
 
     plt.xlim(-0.5, len(labels) - 0.5)      # Set x-limits to remove whitespace
     plt.ylim(0, 1)
+
+    # Horizontal grid lines
+    ax.set_axisbelow(True)  # Put grid behind bars
+    ax.grid(axis="y")
 
     plt.tight_layout()
     plt.savefig(f"./figures/step6/perclass/perclass_{metric_str}_k{k}_{distance_function}.png", dpi=300)
