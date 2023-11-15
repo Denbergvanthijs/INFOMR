@@ -85,7 +85,7 @@ def visualize(fp_meshes: str, width: int = 1280, height: int = 720,
                                       window_name=window_name, mesh_show_back_face=mesh_show_back_face)
 
 
-def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, distance_function: callable) -> tuple:
+def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, distance_function: callable, weights: list = [1, 1]) -> tuple:
     """Retrieves the k closest neighbours of a query mesh from a dataset of meshes
 
     :param query_features: List of features of the query mesh
@@ -101,7 +101,7 @@ def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, dist
     :rtype: tuple
     """
     # List of distances between query mesh and all other meshes in the dataset
-    scores = [compute_distance(query_features, feature, distance_function) for feature in features]
+    scores = [compute_distance(query_features, feature, distance_function, weights=weights) for feature in features]
     scores = np.array(scores, dtype=float)
     indices = np.arange(len(scores))
 
@@ -133,6 +133,7 @@ if __name__ == "__main__":
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
     k = 5  # Number of nearest neighbours to retrieve
+    weights = [0.1, 10]  # Weights for elementary and histogram features, respectively
 
     distance_function = get_euclidean_distance
     # Flag for using KNN instead of custom distance functions
@@ -169,7 +170,8 @@ if __name__ == "__main__":
 
     else:  # Use custom distance functions for querying
         # Create an ordered list of meshes retrieved from the dataset based on EMD (with respect to the query mesh)
-        sorted_scores, sorted_indices = get_k_closest(features_query, features, k=k, distance_function=distance_function)
+        sorted_scores, sorted_indices = get_k_closest(features_query, features, k=k,
+                                                      distance_function=distance_function, weights=weights)
         returned_meshes = ["./data_normalized/" + filepaths[i] for i in sorted_indices]
 
         print(f"Number of returned meshes: {len(returned_meshes)}")

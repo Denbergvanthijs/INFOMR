@@ -26,6 +26,7 @@ np.random.seed(42)
 TOP_N = 5
 n_iter = 1_000
 n_bins = 10
+weights = [0.1, 10]  # Weights for elementary and histogram features, respectively
 features_path = "./Rorschach/feature_extraction/features_normalized.csv"
 fp_data = "./data_normalized/"
 fp_normalization_params = "./Rorschach/feature_extraction/normalization_params.json"
@@ -122,7 +123,8 @@ if uploaded_file is not None:
             retrieved_indices = retrieved_indices[idx]
         else:
             # Create an ordered list of meshes retrieved from the dataset based on the distance function (with respect to the query mesh)
-            retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N, distance_function=distance_func)
+            retrieved_scores, retrieved_indices = get_k_closest(features_query, features, k=TOP_N,
+                                                                distance_function=distance_func, weights=weights)
 
         retrieved_meshes = [filepaths[i] for i in retrieved_indices]
 

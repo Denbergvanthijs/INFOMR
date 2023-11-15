@@ -15,7 +15,7 @@ from scipy.stats import wasserstein_distance
 from tqdm.contrib import tzip
 
 
-def collect_data(fp_features: str, fp_data: str, distance_functions: list):
+def collect_data(fp_features: str, fp_data: str, distance_functions: list, weights: list = [1, 1]):
     df_features = pd.read_csv(fp_features)
     # Preprocess filename column to only keep the filename
     df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-1])
@@ -65,7 +65,8 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
                     matches.append(matched_mesh)
 
             else:  # Use custom distance functions for querying
-                sorted_scores, sorted_indices = get_k_closest(query_features, features, k=k, distance_function=distance_function)
+                sorted_scores, sorted_indices = get_k_closest(query_features, features, k=k,
+                                                              distance_function=distance_function, weights=weights)
 
                 # Get the k nearest neighbours
                 matched_fps = [filepaths[i] for i in sorted_indices]
@@ -81,12 +82,15 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
                                                     "match_filepath", "match_category", "distance"])
         df_matches.to_csv(fp_output_csv, index=False)
 
+    return df_matches
+
 
 if __name__ == "__main__":
     # Query shape/mesh
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
+    weights = [0.1, 10]  # Weights for elementary and histogram features, respectively
 
     distance_functions = [zero_distance, get_manhattan_distance, get_euclidean_distance, get_cosine_distance, "knn"]
 
-    df_matches = collect_data(fp_features, fp_data, distance_functions)
+    df_matches = collect_data(fp_features, fp_data, distance_functions, weights=weights)
