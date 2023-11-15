@@ -1,14 +1,14 @@
 import os
-
-import colorcet as cc
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import colorcet as cc
+import plotly.express as px
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 
 
-def get_all_features(features_path):
+def get_all_features(features_path: str) -> tuple:
     # Reduced version of Rorschach.querying.query.get_all_features
     if not os.path.exists(features_path):
         raise Exception(f"\nThe '{features_path}' file does not exist.")
@@ -18,12 +18,12 @@ def get_all_features(features_path):
     categories = df["category"].values
     features = df.drop(["filename", "category"], axis=1).astype(float).values
 
-    return categories, features
+    return features, categories
 
 
-def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perplexity: int = 10, i: int = 7) -> None:
+def perform_tsne(fp_features: str, tsne_no_components: int = 2, tsne_perplexity: int = 10) -> tuple:
     # Load feature vectors for db shapes
-    categories, features = get_all_features(fp_features)
+    features, categories = get_all_features(fp_features)
 
     # Sort by category
     idx = np.argsort(categories)
@@ -36,33 +36,77 @@ def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perple
     # Embed feature vectors in lower-dimensional space using T-distributed Stochastic Neighbor Embedding (t-SNE)
     features_embedded = TSNE(n_components=tsne_no_components, perplexity=tsne_perplexity, random_state=42).fit_transform(features)
 
-    # categories = categories[:i] + categories[500:500+i] + categories[1000:1000+i] + categories[1500:1500+i]
-    # to_stack = (features_embedded[:i], features_embedded[500:500+i], features_embedded[1000:1000+i], features_embedded[1500:1500+i])
-    # features_embedded = np.vstack(to_stack)
+    return features_embedded, categories
+
+
+def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, n: int = 7) -> None:
+    to_stack = (categories[:n], categories[501:501+n], categories[1000:1000+n], categories[1500:1500+n])
+    categories = np.vstack(to_stack).flatten()
+    to_stack = (features_embedded[:n], features_embedded[501:501+n], features_embedded[1000:1000+n], features_embedded[1500:1500+n])
+    features_embedded = np.vstack(to_stack)
 
     # Set the figure size
-    plt.figure(figsize=(20, 17))
+    plt.figure(figsize=(10, 8))
 
     # Color palette with 69 distinct colors
-    palette = sns.color_palette(cc.glasbey, n_colors=69)
+    palette = sns.color_palette(cc.glasbey, n_colors=4)
 
     # Use Seaborn for plotting
     sns.scatterplot(x=features_embedded[:, 0],
                     y=features_embedded[:, 1],
                     hue=categories,
                     palette=palette,
-                    s=20)
+                    s=40)
 
     # Remove top and right spines
     sns.despine()
 
     plt.xlabel("t-SNE component 1")
     plt.ylabel("t-SNE component 2")
-    plt.legend(title="Categories", loc="lower left", fontsize="8")
+    plt.legend(title="Categories", loc="lower left", fontsize="10")
     plt.tight_layout()
 
     # Save the plot
-    plt.savefig(fp_save, dpi=300)
+    plt.savefig(fp_out, dpi=300)
+
+
+def interactive_plot(features_embedded: np.array, categories: np.array, n: int = 7) -> None:
+    # Create a DataFrame
+    data = pd.DataFrame({
+        'tsne_component_1': features_embedded[:, 0],
+        'tsne_component_2': features_embedded[:, 1],
+        'category': categories
+    })
+
+    # Plotly scatter plot
+    fig = px.scatter(
+        data,
+        x='tsne_component_1',
+        y='tsne_component_2',
+        color='category',
+        title='Interactive Scatterplot',
+        opacity=0.7
+    )
+
+    fig.update_traces(marker=dict(size=10))
+
+    def update_selected_points(trace, points, selector):
+        inds = points.point_inds if points else []
+        selected_category = data.loc[inds[0]]['category'] if inds else None
+
+        if selected_category is not None:
+            mask = data['category'] == selected_category
+            fig.update_traces(selectedpoints=inds)
+            fig.update_traces(marker=dict(color=np.where(mask, data['category'], 'lightgray'), opacity=np.where(mask, 0.7, 0.1)))
+
+    fig.data[0].on_click(update_selected_points)
+
+    fig.update_layout(
+        xaxis_title='t-SNE component 1',
+        yaxis_title='t-SNE component 2'
+    )
+
+    fig.show()
 
 
 if __name__ == "__main__":
@@ -76,6 +120,9 @@ if __name__ == "__main__":
     tsne_perplexity = 25
 
     # Select only a couple of categories for visualization purposes
-    n_categories = 7
+    n = 7
 
-    main(fp_features, fp_out, tsne_no_components, tsne_perplexity, n_categories)
+    # Perform t-SNE on all features and plot the 2-dimensional results (both as a whole and as an interactive plot)
+    features_embedded, categories = perform_tsne(fp_features, tsne_no_components, tsne_perplexity)
+    main_plot(features_embedded, categories, fp_out, n)
+    # interactive_plot(features_embedded, categories, n)
