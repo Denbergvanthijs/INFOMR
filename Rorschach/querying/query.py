@@ -54,12 +54,8 @@ def get_all_features(features_path):
 # Custom distance function
 def compute_distance(query_features, current_features, distance_function, weights=[0.1, 10],
                      split_idx: int = 7, n_hists: int = 5) -> float:
-    assert len(query_features) == len(
-        current_features), f"Feature vectors not equal: {len(query_features)} != {len(current_features)}."
     # Compute distance over all elementary features
     elementary_distance = distance_function(query_features[:split_idx], current_features[:split_idx])
-
-    assert len(query_features[split_idx:]) % n_hists == 0, f"Number of histogram features not divisible by {n_hists}."
 
     # Split features into 5 equal groups, assuming elementary features are first and properly indexed
     histograms_query = np.split(query_features[split_idx:], n_hists)
@@ -115,11 +111,8 @@ def get_k_closest(query_features: np.ndarray, features: np.ndarray, k: int, dist
     indices = indices[idx]
 
     # Sort scores in ascending order but keep track of the original indices
-    sorted_indices, sorted_scores = zip(*sorted(zip(indices, scores), key=lambda x: x[1]))
-
-    # Select k nearest neighbours
-    sorted_indices = sorted_indices[:k]
-    sorted_scores = sorted_scores[:k]
+    sorted_indices = np.argsort(scores)[:k]
+    sorted_scores = scores[sorted_indices]  # Select from k scores
 
     return sorted_scores, sorted_indices
 
@@ -136,7 +129,7 @@ def return_dist_func(selector: str):
 
 if __name__ == "__main__":
     # Query shape/mesh
-    fp_query = "./data_normalized/Knife/D01077.obj"
+    fp_query = "./data_normalized/Bird/D00089.obj"
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
     k = 5  # Number of nearest neighbours to retrieve

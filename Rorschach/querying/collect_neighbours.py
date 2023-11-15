@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import scipy as sp
+from distance_functions import zero_distance
 from query import (
     get_all_features,
     get_cosine_distance,
@@ -24,9 +25,10 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
     ks = df_features["category"].value_counts().to_dict()
 
     filepaths, categories, features = get_all_features(fp_features)
-    features = np.nan_to_num(features, nan=0, posinf=0, neginf=0)
 
     filepaths = [os.path.join(fp_data, fp) for fp in filepaths]
+    # For z-score normalization this means that the feature is equal to the mean
+    features = np.nan_to_num(features, nan=0, posinf=0, neginf=0)
 
     for distance_function in distance_functions:
         # Get a postfix to save each experiment's results in a separate csv file
@@ -34,6 +36,8 @@ def collect_data(fp_features: str, fp_data: str, distance_functions: list):
             csv_postfix = "knn"
         elif distance_function == wasserstein_distance:
             csv_postfix = "emd"
+        elif distance_function == zero_distance:
+            csv_postfix = "zero"
         else:
             csv_postfix = distance_function.__name__.split("_")[1]
 
@@ -83,7 +87,6 @@ if __name__ == "__main__":
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
     fp_data = "./data_normalized/"
 
-    # Note that wasserstein_distance == EMD
-    distance_functions = ["knn", get_manhattan_distance, get_euclidean_distance, get_cosine_distance, wasserstein_distance]
+    distance_functions = [zero_distance, get_manhattan_distance, get_euclidean_distance, get_cosine_distance, "knn"]
 
     df_matches = collect_data(fp_features, fp_data, distance_functions)

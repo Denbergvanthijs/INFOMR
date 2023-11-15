@@ -111,3 +111,7 @@ def get_emd(features_1, features_2):
     emd = work / total_flow
 
     return emd
+
+
+def zero_distance(features_1, features_2):
+    return 0
