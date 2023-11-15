@@ -48,7 +48,7 @@ def get_all_features(features_path):
     categories = df["category"].values
     features = df.drop(["filename", "category"], axis=1).astype(float).values
 
-    return mesh_paths, categories, np.array(features).astype(float)
+    return mesh_paths, categories, features
 
 
 # Custom distance function

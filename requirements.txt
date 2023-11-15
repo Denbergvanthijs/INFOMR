@@ -7,3 +7,5 @@ matplotlib
 seaborn
 pymeshfix
 scipy
+python-slugify
+colorset

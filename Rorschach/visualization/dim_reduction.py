@@ -1,43 +1,34 @@
-import csv
 import os
-import numpy as np
-import seaborn as sns
+
 import colorcet as cc
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 
 
+def get_all_features(features_path):
+    # Reduced version of Rorschach.querying.query.get_all_features
+    if not os.path.exists(features_path):
+        raise Exception(f"\nThe '{features_path}' file does not exist.")
 
-def get_features(features_path: str) -> tuple:
-    mesh_paths = []
-    categories = []
-    features = []
+    df = pd.read_csv(features_path)
 
-    # Check if the file exists
-    if not os.path.isfile(features_path):
-        raise FileNotFoundError(f"Features file not found at {features_path}")
+    categories = df["category"].values
+    features = df.drop(["filename", "category"], axis=1).astype(float).values
 
-    with open(features_path, newline='') as file:
-        csv_reader = csv.reader(file)
-
-        # Skip the first row (header)
-        next(csv_reader)
-
-        for row in csv_reader:
-            if len(row) >= 1:
-                # First element is the mesh path
-                mesh_paths.append(row[0])
-                # Second element is the category label (Humanoid, Vase, etc.)
-                categories.append(row[1])
-                # The remainder of the row are the features (excluding 'volume' and 'compactness' for now)
-                features.append(row[2:])
-
-    return mesh_paths, categories, np.array(features).astype(float)
+    return categories, features
 
 
 def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perplexity: int = 10, i: int = 7) -> None:
     # Load feature vectors for db shapes
-    mesh_paths, categories, features = get_features(fp_features)
+    categories, features = get_all_features(fp_features)
+
+    # Sort by category
+    idx = np.argsort(categories)
+    features = features[idx]
+    categories = categories[idx]
 
     # Set NaN values to 0
     features = np.nan_to_num(features, nan=0, posinf=0, neginf=0)
@@ -56,20 +47,18 @@ def main(fp_features: str, fp_save: str, tsn_no_components: int = 2, tsne_perple
     palette = sns.color_palette(cc.glasbey, n_colors=69)
 
     # Use Seaborn for plotting
-    sns.scatterplot(
-        x=features_embedded[:, 0],
-        y=features_embedded[:, 1],
-        hue=categories,  
-        palette=palette, 
-        s=20
-    )
+    sns.scatterplot(x=features_embedded[:, 0],
+                    y=features_embedded[:, 1],
+                    hue=categories,
+                    palette=palette,
+                    s=20)
 
     # Remove top and right spines
     sns.despine()
 
     plt.xlabel("t-SNE component 1")
     plt.ylabel("t-SNE component 2")
-    plt.legend(title='Categories', loc='lower left', fontsize='8')
+    plt.legend(title="Categories", loc="lower left", fontsize="8")
     plt.tight_layout()
 
     # Save the plot
