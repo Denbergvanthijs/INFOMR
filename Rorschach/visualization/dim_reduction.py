@@ -1,4 +1,5 @@
 import os
+import random
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -39,31 +40,93 @@ def perform_tsne(fp_features: str, tsne_no_components: int = 2, tsne_perplexity:
     return features_embedded, categories
 
 
-def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, n: int = 7) -> None:
-    to_stack = (categories[:n], categories[501:501+n], categories[1000:1000+n], categories[1500:1500+n])
-    categories = np.vstack(to_stack).flatten()
-    to_stack = (features_embedded[:n], features_embedded[501:501+n], features_embedded[1000:1000+n], features_embedded[1500:1500+n])
-    features_embedded = np.vstack(to_stack)
+def reduce_data(features_embedded, categories, i, j, n, seed):
+    # Get shuffled indices
+    np.random.seed(seed) 
+    shuffled_indices = np.random.permutation(len(features_embedded))
 
-    # Set the figure size
-    plt.figure(figsize=(10, 8))
+    # Shuffle both arrays using the shuffled indices
+    features_embedded = features_embedded[shuffled_indices]
+    categories = categories[shuffled_indices]
 
-    # Color palette with 69 distinct colors
-    palette = sns.color_palette(cc.glasbey, n_colors=4)
+    # Convert arrays to pandas DataFrame for easier manipulation
+    df = pd.DataFrame({'features_embedded': features_embedded.tolist(), 'categories': categories})
 
-    # Use Seaborn for plotting
-    sns.scatterplot(x=features_embedded[:, 0],
-                    y=features_embedded[:, 1],
-                    hue=categories,
-                    palette=palette,
-                    s=40)
+    # Get unique categories
+    unique_categories = df['categories'].unique()
+
+    reduced_features = []
+    reduced_categories = []
+
+    # Select all categories between i and i+j
+    for cat in unique_categories[i:i+j]:
+        # Select n instances for each category
+        selected_data = df[df['categories'] == cat][:n]
+
+        # Retrieve the coordinates for each instance and store them in a nested list
+        coords = [instance for instance in selected_data['features_embedded']]
+
+        # Append the selected instances and corresponding categories
+        reduced_features.extend(coords)
+        reduced_categories.extend([cat] * len(coords))
+
+    # Convert the nested list of coordinates back to a NumPy array
+    reduced_features = np.array(reduced_features)
+    reduced_categories = np.array(reduced_categories)
+
+    return reduced_features, reduced_categories
+
+
+def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, i: int = 0, j: int = 69, n: int = 6, reduce: bool = False) -> None:
+     # Color palette with n distinct colors
+    palette = sns.color_palette(cc.glasbey, n_colors=j)
+    
+    # Reduce the number of data instances if desired
+    if reduce:
+        # Generate random seed
+        seed = random.randint(0, 1000)
+        # Update filepath
+        fp_out = f"./figures/step5/2D_meshes({seed}).png"
+        # Take a subset of the data (i.e. reduce the data to a specific amount)
+        features_embedded, categories = reduce_data(features_embedded, categories, i, j, n, seed)
+
+        # Set the figure size
+        plt.figure(figsize=(9, 7))
+
+        # Use Seaborn for plotting
+        ax = sns.scatterplot(x=features_embedded[:, 0],
+                            y=features_embedded[:, 1],
+                            hue=categories,
+                            palette=palette,
+                            s=120,
+                            legend=False)
+        
+        # Annotate each point with the category name
+        for i, txt in enumerate(categories):
+            ax.annotate(txt, (features_embedded[i, 0], features_embedded[i, 1]), textcoords="offset points", xytext=(5,5), ha='right')
+
+    else:
+        # Set the figure size
+        plt.figure(figsize=(22, 18))
+
+        # Color palette with n distinct colors
+        palette = sns.color_palette(cc.glasbey, n_colors=69)
+
+        # Use Seaborn for plotting
+        ax = sns.scatterplot(x=features_embedded[:, 0],
+                            y=features_embedded[:, 1],
+                            hue=categories,
+                            palette=palette,
+                            s=35)
+        
+        plt.legend(title="Categories", loc="lower left", fontsize="9")
 
     # Remove top and right spines
     sns.despine()
 
+    # Add labels
     plt.xlabel("t-SNE component 1")
     plt.ylabel("t-SNE component 2")
-    plt.legend(title="Categories", loc="lower left", fontsize="10")
     plt.tight_layout()
 
     # Save the plot
@@ -110,19 +173,27 @@ def interactive_plot(features_embedded: np.array, categories: np.array, n: int =
 
 
 if __name__ == "__main__":
+    # Generate random seed between 0 and 1000
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
-    fp_out = "./figures/step5/2D_meshes_all.png"
+    fp_out = f"./figures/step5/2D_meshes_all.png"
 
     # Parameters
     tsne_no_components = 2
     # Perplexity value / Sigma value (should be between 30-50 according to Alex)
     # It accounts for the number of nearest neighbours that needs to be preserved after dim. reduction
-    tsne_perplexity = 25
+    tsne_perplexity = 40
 
-    # Select only a couple of categories for visualization purposes
-    n = 7
+    # Select only a couple of categories (interval between [i:i+j]) and a number per category (n)
+    reduce = True
+    i = 0
+    j = 4
+    n = 6
 
     # Perform t-SNE on all features and plot the 2-dimensional results (both as a whole and as an interactive plot)
     features_embedded, categories = perform_tsne(fp_features, tsne_no_components, tsne_perplexity)
-    main_plot(features_embedded, categories, fp_out, n)
+
+    if reduce:
+        main_plot(features_embedded, categories, fp_out, i=i, j=j, n=n, reduce=reduce)
+    else:
+        main_plot(features_embedded, categories, fp_out)
     # interactive_plot(features_embedded, categories, n)
