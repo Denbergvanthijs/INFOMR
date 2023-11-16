@@ -181,19 +181,22 @@ if __name__ == "__main__":
     tsne_no_components = 2
     # Perplexity value / Sigma value (should be between 30-50 according to Alex)
     # It accounts for the number of nearest neighbours that needs to be preserved after dim. reduction
-    tsne_perplexity = 40
-
-    # Select only a couple of categories (interval between [i:i+j]) and a number per category (n)
-    reduce = True
-    i = 0
-    j = 4
-    n = 6
+    tsne_perplexity = 20
 
     # Perform t-SNE on all features and plot the 2-dimensional results (both as a whole and as an interactive plot)
     features_embedded, categories = perform_tsne(fp_features, tsne_no_components, tsne_perplexity)
 
+    reduce = True
+
+    # Plot all results or a specific subset 
     if reduce:
-        main_plot(features_embedded, categories, fp_out, i=i, j=j, n=n, reduce=reduce)
+        for _ in range(6):
+            # Select only a couple of categories and instances per chosen category
+            init = random.randint(0, 65)
+            n_categories = 4
+            n_instances = 6
+            main_plot(features_embedded, categories, fp_out, i=init, j=n_categories, n=n_instances, reduce=reduce)
     else:
         main_plot(features_embedded, categories, fp_out)
+
     # interactive_plot(features_embedded, categories, n)
