@@ -82,11 +82,16 @@ def clean_mesh(fp_mesh: str, fp_mesh_out: str, cleanMeshes: bool = True, remeshT
 
     # Remeshing
     if remeshTargVert > 0:
-        if v_no < remeshTargVert * 0.5:
-            meshset.meshing_isotropic_explicit_remeshing(targetlen=AbsoluteValue(0.02), iterations=4)
+        if mesh.vertex_number() < remeshTargVert * 0.8:
+            meshset.meshing_isotropic_explicit_remeshing(targetlen=AbsoluteValue(0.01), iterations=2)
+        
+        if mesh.vertex_number() > remeshTargVert * 1.2:
+            numFaces = remeshTargVert * 2
+            meshset.apply_filter('meshing_decimation_quadric_edge_collapse', targetfacenum=numFaces, preservenormal=True)
 
     # Save cleaned mesh
     meshset.save_current_mesh(fp_mesh_out)
+    meshset.clear()
 
     # Return number of vertices and faces before cleaning
     return v_no, f_no
@@ -200,7 +205,7 @@ def count_nonwatertight(fp_data: str = "data_cleaned"):
 if __name__ == "__main__":
     fp_data = "data"
     fp_data_out = "data_cleaned"
-    n_categories = 70  # len(categories)
+    n_categories = 69  # len(categories)
 
     # print(f"\nThere are {count_nonwatertight(fp_data)} non-watertight meshes in the dataset before processing.")
 

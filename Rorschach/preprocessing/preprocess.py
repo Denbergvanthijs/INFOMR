@@ -210,7 +210,7 @@ if __name__ == "__main__":
     csv_fp_normalized = "./data_normalized/mesh_info.csv"
 
     fp_meshes_in = "./data_cleaned"  # Input, the refined meshes, i.e. after running patch_meshes.py
-    fp_meshes_out = "./data_normalized"  # Output, the normalised meshes
+    fp_meshes_out = "./data_normalized"  # Output, the normalized meshes
     n_categories = 0  # 0 to read all categories
 
     # Read mesh info from data folder and save it to a CSV file
