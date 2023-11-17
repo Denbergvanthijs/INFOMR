@@ -42,70 +42,30 @@ def rows_sqr_error(m1, m2=np.identity(3)):
 
 def normalize_mesh(meshset: pymeshlab.MeshSet) -> pymeshlab.MeshSet:
     measures = meshset.get_geometric_measures()  # Dictionary with geometric measures
-    # All keys of measures dict:
-    # "barycenter"
-    # "shell_barycenter"
-    # "pca"
-    # "bbox"
-    # "surface_area"
-    # "total_edge_inc_faux_length"
-    # "total_edge_length"
-    # "avg_edge_inc_faux_length"
-    # "avg_edge_length"
     barycenter = measures["barycenter"]  # Compute barycenter before translation
-    # print(f"bc: {np.sum(np.square(measures['barycenter']))}")
 
     ### Translate: baricenter to origin ###
     meshset.apply_filter("compute_matrix_from_translation",
                          traslmethod=3,  # traslmethod of 3 is to set a new origin instead of translating
-                         neworigin=measures["barycenter"])  # Use point clod for barycenter and make that new origin
-
-    measures = meshset.get_geometric_measures()  # Compute measures again with new barycenter
-    barycenter = measures["barycenter"]
-    pca_axes = measures["pca"]
-    # print(f"bc after trans: {np.sum(np.square(barycenter))}")
-    # print(f"pc:\n{pca_axes.round(3)}")
+                         neworigin=barycenter)  # Use point clod for barycenter and make that new origin
 
     ### Pose: Rotate to align axes ###
     meshset.apply_filter("compute_matrix_by_principal_axis", pointsflag=True, freeze=True, alllayers=True)
-
-    measures = meshset.get_geometric_measures()  # Compute measures again after axis align
-    pca_axes = measures["pca"]
-    # print(f"Aligned pc:\n{pca_axes.round(3)}")
-    # print(f"bc after rot: {np.sum(np.square(measures['barycenter']))}")
 
     ### Flip: heavy side to negative ###
     mesh = meshset.current_mesh()
     vertices = mesh.vertex_matrix()
     signx, signy, signz = calc_vertices_sign(vertices)  # Compute second order moment (SOM) sign
 
-    # print(f"SOM sign: [{signx}  {signy}  {signz}]")
-
     # Flip axes whose pc is in the positive direction (to flip more mass towards negative side)
     flip_x, flip_y, flip_z = flip_flags(signx, signy, signz)  # Whether to flip along any of the axes
 
     meshset.apply_filter("apply_matrix_flip_or_swap_axis", flipx=flip_x, flipy=flip_y, flipz=flip_z)
 
-    mesh = meshset.current_mesh()
-    vertices = mesh.vertex_matrix()
-    signx, signy, signz = calc_vertices_sign(vertices)  # Compute measures again after flipping
-
-    # print(f"SOM flipped: [{signx}  {signy}  {signz}]")
-    bbox = measures["bbox"]
-    bbox_max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
-    # print(f"Max dim: {bbox_max_dim}")
-    # print(f"bc after flip: {np.sum(np.square(measures['barycenter']))}")
-
     ### Size: multiply every dimension by inverse biggest axis ###
     meshset.apply_filter("compute_matrix_from_scaling_or_normalization",
                          scalecenter=0,  # scalecenter=0 to scale around world origin, 1 to scale around barycenter
                          unitflag=True)  # unitflag=True to scale to unit cube
-
-    measures = meshset.get_geometric_measures()  # Compute measures again after scaling
-    bbox = measures["bbox"]
-    bbox_max_dim = max(bbox.dim_x(), bbox.dim_y(), bbox.dim_z())
-    # print(f"Scaled max dim: {bbox_max_dim}")
-    # print(f"bc after scaling: {np.sum(np.square(measures['barycenter']))}")
 
     return meshset
 
@@ -244,27 +204,8 @@ def read_meshes(data_folder: str = "data_cleaned", data_folder_output: str = "da
     return [np.array(mesh_info), np.array(mesh_info_normalized)]
 
 
-def avg_shape(mesh_info: np.ndarray) -> tuple:
-    """Calculates the average shape of all meshes in the dataset.
-
-    :param mesh_info: Numpy array with mesh info
-    :type mesh_info: np.ndarray
-    :return: Average number of vertices and faces
-    :rtype: tuple
-    """
-    n_meshes = mesh_info.shape[0]
-
-    # Rewrite to use numpy
-    tot_vertices = np.sum(mesh_info[:, 2].astype(int))
-    tot_faces = np.sum(mesh_info[:, 3].astype(int))
-
-    return tot_vertices / n_meshes, tot_faces / n_meshes
-
-
 if __name__ == "__main__":
     # Flags to read/write info from csv
-    read_mesh_info = False
-    save_mesh_info = True
     csv_file_path = "./data_cleaned/mesh_info.csv"
     csv_fp_normalized = "./data_normalized/mesh_info.csv"
 
@@ -272,59 +213,27 @@ if __name__ == "__main__":
     fp_meshes_out = "./data_normalized"  # Output, the normalised meshes
     n_categories = 0  # 0 to read all categories
 
-    # Load mesh info from existing CSV file
-    if read_mesh_info:
-        mesh_info = pd.read_csv(csv_file_path)
-
-        # Load vertices and faces
-        vertices = []
-        faces = []
-        for _, mesh in mesh_info.iterrows():
-            vertices.append(mesh["Vertices"])
-            faces.append(mesh["Faces"])
-
-        # Convert to numpy array
-        vertices = np.array(vertices)
-        faces = np.array(faces)
-
-        # Print average shape
-        n_vertices, n_faces = avg_shape(mesh_info.values)  # Convert to numpy array
-        # print(f"Average shape: {n_vertices:_.0f} vertices, {n_faces:_.0f} faces")
-
     # Read mesh info from data folder and save it to a CSV file
-    elif save_mesh_info:
-        column_names = ["Filename", "Class", "Vertices", "Faces",
-                        "Barycenter offset", "Principal comp error", "SOM error", "Max dim"]
-        mesh_info, mesh_info_normalized = read_meshes(data_folder=fp_meshes_in,
-                                                      data_folder_output=fp_meshes_out,
-                                                      n_categories=n_categories)
+    column_names = ["Filename", "Class", "Vertices", "Faces",
+                    "Barycenter offset", "Principal comp error", "SOM error", "Max dim"]
+    mesh_info, mesh_info_normalized = read_meshes(data_folder=fp_meshes_in,
+                                                  data_folder_output=fp_meshes_out,
+                                                  n_categories=n_categories)
 
-        # Save mesh info in a CSV file
-        with open(csv_file_path, "w", newline="", encoding="utf-8") as csvfile:
-            csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(column_names)
+    # Save mesh info in a CSV file
+    with open(csv_file_path, "w", newline="", encoding="utf-8") as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(column_names)
 
-            for row in mesh_info:
-                csv_writer.writerow(row)
+        for row in mesh_info:
+            csv_writer.writerow(row)
 
-        # Save normalized mesh info in a CSV file
-        with open(csv_fp_normalized, "w", newline="", encoding="utf-8") as csvnorm:
-            csv_writer = csv.writer(csvnorm)
-            csv_writer.writerow(column_names)
+    # Save normalized mesh info in a CSV file
+    with open(csv_fp_normalized, "w", newline="", encoding="utf-8") as csvnorm:
+        csv_writer = csv.writer(csvnorm)
+        csv_writer.writerow(column_names)
 
-            for row in mesh_info_normalized:
-                csv_writer.writerow(row)
+        for row in mesh_info_normalized:
+            csv_writer.writerow(row)
 
-        # Print average shape
-        n_vertices, n_faces = avg_shape(mesh_info)  # 5609 vertices, 10691 faces
-        # print(f"Average shape: {n_vertices:_.0f} vertices, {n_faces:_.0f} faces")
-
-    # Read mesh info from data folder but don't save
-    else:
-        mesh_info, mesh_info_normalized = read_meshes()
-
-        # Print average shape
-        n_vertices, n_faces = avg_shape(mesh_info)  # 5609 vertices, 10691 faces
-        # print(f"Average shape: {n_vertices:_.0f} vertices, {n_faces:_.0f} faces")
-
-        # Full preprocessing (normalization) takes 6 minutes 17 seconds (Riemer)
+    # Use visualize_data.py to visualize the data and print relevant statistics
