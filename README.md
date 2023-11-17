@@ -33,9 +33,9 @@ After running any of the above commands, the resulting window should look simila
 
 ### Step 2: Preprocessing and cleaning
 
-1. Run `python ./code/patch_meshes.py` to refine the meshes
-2. Run `python ./code/preprocess.py` to normalize the meshes
-3. Run `python ./code/visualize_data.py` to generate statistics for the refined and normalised meshes
+1. Run `python ./Rorschach/preprocessing/patch_meshes.py` to resample the meshes, this includes remeshing.
+2. Run `python ./Rorschach/preprocessing/preprocess.py` to normalize the meshes.
+3. Run `python ./Rorschach/visualization/visualize_data.py` to generate the relevant histograms and boxplots to visualize the resampling and normalisation steps. This will also print relevant statistics of the original, resampled and normalized datasets.
 
 ## Screenshots
 

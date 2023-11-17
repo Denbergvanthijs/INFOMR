@@ -15,7 +15,7 @@ UU_PAL = sns.color_palette([UU_YELLOW, UU_RED, UU_CREME, UU_ORANGE, UU_BURGUNDY,
 
 
 # Function to calculate outliers (shapes outside of 4th quartile of boxplot)
-def calc_outliers(data):
+def calc_outliers(data: np.ndarray) -> tuple:
     # Calculate the quartiles and IQR
     q1 = np.percentile(data, 25)
     q3 = np.percentile(data, 75)
@@ -23,12 +23,13 @@ def calc_outliers(data):
 
     # Define the upper bound for outliers
     upper_bound = q3 + 1.5 * iqr
-    print(upper_bound)
+    lower_bound = q1 - 1.5 * iqr
 
     # Count the number of outliers
-    outliers = [x for x in data if x > upper_bound]
-    num_outliers = len(outliers)
-    print(num_outliers)
+    outliers_upper = data[data > upper_bound]
+    outliers_lower = data[data < lower_bound]
+
+    return len(outliers_lower), len(outliers_upper)
 
 
 # Function to create boxplots of number of vertices and faces
@@ -183,9 +184,6 @@ def hist_barycenter(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame,
     offset_bary_count = offset_bary_count / offset_bary_count.sum() * 100
     offset_bary_count_norm = offset_bary_count_norm / offset_bary_count_norm.sum() * 100
 
-    print(f"Max barycenter offset: {mesh_info['Barycenter offset'].max()}")
-    print(f"Max barycenter offset (normalized): {mesh_info_normalized['Barycenter offset'].max()}")
-
     fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
     axes[0].hist(bins_bary[:-1], bins_bary, weights=offset_bary_count, color=UU_YELLOW, edgecolor="black")
     axes[0].set_title("Before normalization")
@@ -284,13 +282,92 @@ def boxplot_before_after(mesh_info, mesh_info_normalized, column: str) -> None:
     plt.clf()
 
 
+def summary_statistics(fp_csv: str, n_decimals: int = None, top_n: int = 10) -> dict:
+    """Calculate relevant statistics as required in Step 2 of the assignment.
+
+    :param fp_csv: Filepath to the mesh info of a dataset
+    :type fp_csv: str
+
+    :return: Relevant statistics
+    :rtype: dict
+    """
+    # Load csv in pandas
+    mesh_info = pd.read_csv(fp_csv)
+
+    stats = {}
+
+    # Calculate mean number of vertices and faces
+    stats["Mean vertices"] = mesh_info["Vertices"].mean()
+    stats["Mean faces"] = mesh_info["Faces"].mean()
+
+    # Calculate min and max values of vertices and faces
+    stats["Min vertices"] = mesh_info["Vertices"].min()
+    stats["Max vertices"] = mesh_info["Vertices"].max()
+
+    stats["Min faces"] = mesh_info["Faces"].min()
+    stats["Max faces"] = mesh_info["Faces"].max()
+
+    # Calculate outliers outside of inner two quartiles
+    vertex_lower, vertex_upper = calc_outliers(mesh_info["Vertices"].values)
+    stats["Outliers vertices lowerbound"] = vertex_lower
+    stats["Outliers vertices upperbound"] = vertex_upper
+
+    face_lower, face_upper = calc_outliers(mesh_info["Faces"].values)
+    stats["Outliers faces lowerbound"] = face_lower
+    stats["Outliers faces upperbound"] = face_upper
+
+    # Calculate percentage of outliers in dataset
+    stats["Percentage outliers vertices"] = (vertex_lower + vertex_upper) / len(mesh_info) * 100
+    stats["Percentage outliers faces"] = (face_lower + face_upper) / len(mesh_info) * 100
+
+    # Calculate mean number of meshes per category
+    stats["Mean meshes per category"] = mesh_info["Class"].value_counts().mean()
+
+    # Top n categories
+    stats["Top n categories"] = mesh_info["Class"].value_counts()[:top_n].to_dict()
+
+    if n_decimals is not None:
+        for key, value in stats.items():
+            if isinstance(value, float):  # Ignore dict-in-dict
+                stats[key] = round(value, n_decimals)
+    return stats
+
+
+def normalization_statistics(fp_csv, n_decimals: int = None):
+    # Load csv in pandas
+    mesh_info = pd.read_csv(fp_csv)
+
+    stats = {}
+
+    # Mean of relevant columns
+    stats["Mean Barycenter offset"] = mesh_info["Barycenter offset"].mean()
+    stats["Mean Principal comp error"] = mesh_info["Principal comp error"].mean()
+    stats["Mean SOM error"] = mesh_info["SOM error"].mean()
+    stats["Mean Max dim"] = mesh_info["Max dim"].mean()
+
+    # Max of relevant columns
+    stats["Max Barycenter offset"] = mesh_info["Barycenter offset"].max()
+    stats["Max Principal comp error"] = mesh_info["Principal comp error"].max()
+    stats["Max SOM error"] = mesh_info["SOM error"].max()
+    stats["Max Max dim"] = mesh_info["Max dim"].max()
+
+    if n_decimals is not None:
+        for key, value in stats.items():
+            stats[key] = round(value, n_decimals)
+
+    return stats
+
+
 if __name__ == "__main__":
     # Load mesh info from existing CSV file
     mesh_info_raw = pd.read_csv("./data/mesh_info.csv")
-    mesh_info = pd.read_csv("./data_cleaned/mesh_info.csv")
+    mesh_info_cleaned = pd.read_csv("./data_cleaned/mesh_info.csv")
     mesh_info_normalized = pd.read_csv("./data_normalized/mesh_info.csv")
 
     # 2.2 statistics over whole dataset
+    stats = summary_statistics("./data/mesh_info.csv", n_decimals=0)
+    print(f"Before resampling: {stats}")
+
     histogram2D(mesh_info_raw, "Vertices", "./figures/step2/before_processing/hist_vertices.png", n_bins=15)
     histogram2D(mesh_info_raw, "Faces", "./figures/step2/before_processing/hist_faces.png", n_bins=15)
     boxplot(mesh_info_raw, column="Vertices", fp_save="./figures/step2/before_processing/boxplot_vertices.png")
@@ -298,17 +375,26 @@ if __name__ == "__main__":
     class_distribution(mesh_info_raw, "./figures/step2/before_processing/class_distribution.png", top_n=10)
     class_histogram(mesh_info_raw, "./figures/step2/before_processing/class_histogram.png", every_n=20)
 
-    # 2.5
-    hist_barycenter(mesh_info, mesh_info_normalized, "Barycenter offset", "./figures/step2/after_processing/hist_bary.png")
-    hist_max_dim(mesh_info, mesh_info_normalized, "Max dim", "./figures/step2/after_processing/hist_max_dim.png")
-    hist_before_after(mesh_info, mesh_info_normalized, "Principal comp error", "./figures/step2/after_processing/hist_pca.png")
-    hist_before_after(mesh_info, mesh_info_normalized, "SOM error", "./figures/step2/after_processing/hist_som.png")
-
-    # Uses mesh info raw since only these two columns are present in the raw data
-    hist_before_after(mesh_info_raw, mesh_info_normalized, "Vertices",
+    # 2.3 Resampling outliers, original data vs after resampling
+    hist_before_after(mesh_info_raw, mesh_info_cleaned, "Vertices",
                       "./figures/step2/after_processing/hist_vertices.png", binrange=(0, 100_000))
-    hist_before_after(mesh_info_raw, mesh_info_normalized, "Faces",
+    hist_before_after(mesh_info_raw, mesh_info_cleaned, "Faces",
                       "./figures/step2/after_processing/hist_faces.png", binrange=(0, 100_000))
+    stats = summary_statistics("./data_cleaned/mesh_info.csv", n_decimals=0)
+    # Only print mean number of vertices and faces
+    print(f"After resampling: Mean vertices: {stats['Mean vertices']}; Mean faces: {stats['Mean faces']}")
+
+    # 2.5
+    hist_barycenter(mesh_info_cleaned, mesh_info_normalized, "Barycenter offset", "./figures/step2/after_processing/hist_bary.png")
+    hist_max_dim(mesh_info_cleaned, mesh_info_normalized, "Max dim", "./figures/step2/after_processing/hist_max_dim.png")
+    hist_before_after(mesh_info_cleaned, mesh_info_normalized, "Principal comp error", "./figures/step2/after_processing/hist_pca.png")
+    hist_before_after(mesh_info_cleaned, mesh_info_normalized, "SOM error", "./figures/step2/after_processing/hist_som.png")
+
+    # Print stats before and after normalization
+    stats_before = normalization_statistics("./data_cleaned/mesh_info.csv", n_decimals=0)
+    stats_after = normalization_statistics("./data_normalized/mesh_info.csv", n_decimals=0)
+    print(f"Before normalization: {stats_before}")
+    print(f"After normalization: {stats_after}")
 
     # Old functions
     # histogram3D(mesh_info_raw)
