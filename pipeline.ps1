@@ -1,5 +1,8 @@
 Write-Host "This script runs the complete pipeline."
 
+# Start timer
+$start = Get-Date
+
 # Set path to python executable
 $python = "C:/Program Files/Python38/python.exe"
 
@@ -29,3 +32,6 @@ $python = "C:/Program Files/Python38/python.exe"
 
 # Generate T-SNE plot of the normalized features
 & $python ./Rorschach/visualization/dim_reduction.py
+
+# Time in minutes
+Write-Host "Time elapsed: $((Get-Date).Subtract($start).TotalMinutes) minutes"

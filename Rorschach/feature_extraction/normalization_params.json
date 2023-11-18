@@ -1,20 +1,20 @@
 {
     "mean": {
-        "surface_area": 1.6369412244295067,
-        "hull_volume": 0.1166257033329779,
-        "obb_volume": 0.2600790924033875,
-        "compactness": 0.06317456211874965,
-        "diameter": 1.185091503684899,
-        "eccentricity": 66.97188444987859,
-        "rectangularity": 0.4580700472281002
+        "surface_area": 1.686374631339424,
+        "hull_volume": 0.11653352563283555,
+        "obb_volume": 0.25911408112870726,
+        "compactness": 0.06756540362893598,
+        "diameter": 1.214658996811949,
+        "eccentricity": 69.46467752443318,
+        "rectangularity": 0.4580916654219416
     },
     "std": {
-        "surface_area": 1.4012697858094485,
-        "hull_volume": 0.10507147894757354,
-        "obb_volume": 0.23258925519813797,
-        "compactness": 0.06492004116290898,
-        "diameter": 0.13184873078892212,
-        "eccentricity": 145.7162149509924,
-        "rectangularity": 0.1356713814846764
+        "surface_area": 1.487731502536162,
+        "hull_volume": 0.10531695403115612,
+        "obb_volume": 0.23110106097754693,
+        "compactness": 0.07608180401851364,
+        "diameter": 0.1544456437685059,
+        "eccentricity": 154.71461977846198,
+        "rectangularity": 0.13617218642731954
     }
 }
