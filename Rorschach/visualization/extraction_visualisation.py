@@ -70,7 +70,7 @@ def plot_hist_grid(df, fp_save: str, n_classes: int = 4, n_bins: int = 10) -> No
 
     plt.tight_layout()
     plt.savefig(fp_save, dpi=300)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == "__main__":
