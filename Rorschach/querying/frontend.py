@@ -44,12 +44,6 @@ df_features["filename"] = df_features["filename"].apply(lambda x: x.split("/")[-
 # Get all features from the dataset
 filepaths, categories, features = get_all_features(features_path)
 
-
-def show_mesh(fp_mesh):
-    command = f'"C:/Program Files/Python38/python.exe" ./Rorschach/visualization/meshViewer.py --mesh_path {fp_mesh} --visualization_method shade'
-    os.system(command)
-
-
 st.set_page_config(page_title="Rorschach CBSR",
                    page_icon="💡",
                    layout="wide",

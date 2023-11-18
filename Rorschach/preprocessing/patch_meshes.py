@@ -84,7 +84,7 @@ def clean_mesh(fp_mesh: str, fp_mesh_out: str, cleanMeshes: bool = True, remeshT
     if remeshTargVert > 0:
         if mesh.vertex_number() < remeshTargVert * 0.8:
             meshset.meshing_isotropic_explicit_remeshing(targetlen=AbsoluteValue(0.01), iterations=2)
-        
+
         if mesh.vertex_number() > remeshTargVert * 1.2:
             numFaces = remeshTargVert * 2
             meshset.apply_filter('meshing_decimation_quadric_edge_collapse', targetfacenum=numFaces, preservenormal=True)

@@ -448,7 +448,7 @@ if __name__ == "__main__":
     # D3: square root of area of triangle given by 3 random vertices
     # D4: cube root of volume of tetrahedron formed by 4 random vertices
 
-    # extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
+    extract_features(fp_data=fp_data, fp_csv_out=fp_csv_out, n_categories=n_categories, n_iter=n_iter, n_bins=n_bins)
 
     # Params to save min-max values for later use for new data
     ignore_last = n_bins * 5  # Ignore last 5 columns (A1 and D1 to D4)

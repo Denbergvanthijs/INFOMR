@@ -1,10 +1,11 @@
 import os
 import random
+
+import colorcet as cc
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import colorcet as cc
 import plotly.express as px
+import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 
@@ -42,7 +43,7 @@ def perform_tsne(fp_features: str, tsne_no_components: int = 2, tsne_perplexity:
 
 def reduce_data(features_embedded, categories, i, j, n, seed):
     # Get shuffled indices
-    np.random.seed(seed) 
+    np.random.seed(seed)
     shuffled_indices = np.random.permutation(len(features_embedded))
 
     # Shuffle both arrays using the shuffled indices
@@ -78,9 +79,9 @@ def reduce_data(features_embedded, categories, i, j, n, seed):
 
 
 def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, i: int = 0, j: int = 69, n: int = 6, reduce: bool = False) -> None:
-     # Color palette with n distinct colors
+    # Color palette with n distinct colors
     palette = sns.color_palette(cc.glasbey, n_colors=j)
-    
+
     # Reduce the number of data instances if desired
     if reduce:
         # Generate random seed
@@ -95,15 +96,15 @@ def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, i:
 
         # Use Seaborn for plotting
         ax = sns.scatterplot(x=features_embedded[:, 0],
-                            y=features_embedded[:, 1],
-                            hue=categories,
-                            palette=palette,
-                            s=120,
-                            legend=False)
-        
+                             y=features_embedded[:, 1],
+                             hue=categories,
+                             palette=palette,
+                             s=120,
+                             legend=False)
+
         # Annotate each point with the category name
         for i, txt in enumerate(categories):
-            ax.annotate(txt, (features_embedded[i, 0], features_embedded[i, 1]), textcoords="offset points", xytext=(5,5), ha='right')
+            ax.annotate(txt, (features_embedded[i, 0], features_embedded[i, 1]), textcoords="offset points", xytext=(5, 5), ha='right')
 
     else:
         # Set the figure size
@@ -114,11 +115,11 @@ def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, i:
 
         # Use Seaborn for plotting
         ax = sns.scatterplot(x=features_embedded[:, 0],
-                            y=features_embedded[:, 1],
-                            hue=categories,
-                            palette=palette,
-                            s=35)
-        
+                             y=features_embedded[:, 1],
+                             hue=categories,
+                             palette=palette,
+                             s=35)
+
         plt.legend(title="Categories", loc="lower left", fontsize="9")
 
     # Remove top and right spines
@@ -135,21 +136,17 @@ def main_plot(features_embedded: np.array, categories: np.array, fp_out: str, i:
 
 def interactive_plot(features_embedded: np.array, categories: np.array, n: int = 7) -> None:
     # Create a DataFrame
-    data = pd.DataFrame({
-        'tsne_component_1': features_embedded[:, 0],
-        'tsne_component_2': features_embedded[:, 1],
-        'category': categories
-    })
+    data = pd.DataFrame({'tsne_component_1': features_embedded[:, 0],
+                         'tsne_component_2': features_embedded[:, 1],
+                         'category': categories})
 
     # Plotly scatter plot
-    fig = px.scatter(
-        data,
-        x='tsne_component_1',
-        y='tsne_component_2',
-        color='category',
-        title='Interactive Scatterplot',
-        opacity=0.7
-    )
+    fig = px.scatter(data,
+                     x='tsne_component_1',
+                     y='tsne_component_2',
+                     color='category',
+                     title='Interactive Scatterplot',
+                     opacity=0.7)
 
     fig.update_traces(marker=dict(size=10))
 
@@ -164,10 +161,7 @@ def interactive_plot(features_embedded: np.array, categories: np.array, n: int =
 
     fig.data[0].on_click(update_selected_points)
 
-    fig.update_layout(
-        xaxis_title='t-SNE component 1',
-        yaxis_title='t-SNE component 2'
-    )
+    fig.update_layout(xaxis_title='t-SNE component 1', yaxis_title='t-SNE component 2')
 
     fig.show()
 
@@ -175,7 +169,7 @@ def interactive_plot(features_embedded: np.array, categories: np.array, n: int =
 if __name__ == "__main__":
     # Generate random seed between 0 and 1000
     fp_features = "./Rorschach/feature_extraction/features_normalized.csv"
-    fp_out = f"./figures/step5/2D_meshes_all.png"
+    fp_out = "./figures/step5/2D_meshes_all.png"
 
     # Parameters
     tsne_no_components = 2
@@ -188,7 +182,7 @@ if __name__ == "__main__":
 
     reduce = True
 
-    # Plot all results or a specific subset 
+    # Plot all results or a specific subset
     if reduce:
         for _ in range(6):
             # Select only a couple of categories and instances per chosen category
