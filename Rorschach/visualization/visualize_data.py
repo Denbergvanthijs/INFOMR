@@ -230,14 +230,14 @@ def hist_max_dim(mesh_info: pd.DataFrame, mesh_info_normalized: pd.DataFrame, co
     plt.clf()
 
 
-def hist_before_after(mesh_info, mesh_info_normalized, column: str, fp_save,
+def hist_before_after(mesh_info, mesh_info_normalized, column: str, fp_save, binwidth: float = None,
                       binrange: tuple = None, sharex: bool = True, sharey: bool = True) -> None:
     data_before = mesh_info[column].values
     data_after = mesh_info_normalized[column].values
 
     fig, axes = plt.subplots(1, 2, sharex=sharex, sharey=sharey)
-    sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent", edgecolor="black", bins="sqrt", binrange=binrange)
-    sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent", edgecolor="black", bins="sqrt", binrange=binrange)
+    sns.histplot(data=data_before, color=UU_YELLOW, ax=axes[0], stat="percent", edgecolor="black", bins="sqrt", binwidth=binwidth, binrange=binrange)
+    sns.histplot(data=data_after, color=UU_YELLOW, ax=axes[1], stat="percent", edgecolor="black", bins="sqrt", binwidth=binwidth, binrange=binrange)
 
     axes[0].set_ylabel("Percentage")
     axes[0].set_xlabel(f"\n{column}")
@@ -377,10 +377,10 @@ if __name__ == "__main__":
 
     # 2.3 Resampling outliers, original data vs after resampling
     hist_before_after(mesh_info_raw, mesh_info_cleaned, "Vertices",
-                      "./figures/step2/after_processing/hist_vertices.png", binrange=(0, 100_000))
+                      "./figures/step2/after_processing/hist_vertices.png", binwidth=2000, binrange=(0, 100_000))
     hist_before_after(mesh_info_raw, mesh_info_cleaned, "Faces",
-                      "./figures/step2/after_processing/hist_faces.png", binrange=(0, 100_000))
-    stats = summary_statistics("./data_cleaned/mesh_info.csv", n_decimals=0)
+                      "./figures/step2/after_processing/hist_faces.png", binwidth=2000, binrange=(0, 100_000))
+    stats = summary_statistics("./data_normalized/mesh_info.csv", n_decimals=0)
     # Only print mean number of vertices and faces
     print(f"After resampling: Mean vertices: {stats['Mean vertices']}; Mean faces: {stats['Mean faces']}")
 
