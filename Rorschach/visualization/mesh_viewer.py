@@ -1,5 +1,7 @@
+import os
 import argparse
 import open3d as o3d
+import numpy as np
 from pymeshlab import MeshSet
 
 
@@ -53,7 +55,7 @@ def visualize(mesh_path: str, width: int = 1280, height: int = 720, method: str 
     mesh = o3d.io.read_triangle_mesh(args.mesh_path)
     mesh.compute_vertex_normals()
 
-    window_name = f"Rorschach - Visualized mesh: {mesh_path}"
+    window_name = f"Rorschach - Viewing Tool"
 
     # Draw cartesian frame of reference
     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
@@ -76,7 +78,60 @@ def visualize(mesh_path: str, width: int = 1280, height: int = 720, method: str 
         o3d.visualization.draw_geometries([mesh], width=width, height=height, window_name=window_name)
 
 
+# Function for visualizing multiple meshes from a given list of categories
+def visualize_multiple(all_mesh_paths: list, width: int = 1280, height: int = 720, method: str = None) -> None:
+    i = 0
+    j = 0
+    meshes = []
+
+    for mesh_paths in all_mesh_paths:
+        for path in mesh_paths:
+            # Load mesh with open3d
+            mesh = o3d.io.read_triangle_mesh(path)
+            mesh.compute_vertex_normals()
+
+            mesh.translate([0,j,i])
+            meshes.append(mesh)
+            i += 1.5
+        i = 0
+        j += 1.5
+
+    window_name = f"Rorschach - Viewing Tool"
+
+    if method == 'axes':
+        mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2)
+        mesh_frame.translate([0,0,-3.5])
+        meshes.append(mesh_frame)
+
+    o3d.visualization.draw_geometries(meshes, width=width, height=height, window_name=window_name)
+
+
 if __name__ == "__main__":
+    # Print all necessary viewing tool hotkeys
+    print('''
+-- Mouse view control --
+Left button + drag         : Rotate.
+Ctrl + left button + drag  : Translate.
+Wheel button + drag        : Translate.
+Shift + left button + drag : Roll.
+Toggle                     : Zoom in/out.
+
+-- Keyboard view control --
+[/]          : Increase/decrease field of view.
+R            : Reset view point.
+W            : Render wireframe
+S            : Render shading
+Ctrl/Cmd + C : Copy current view status into the clipboard.
+Ctrl/Cmd + V : Paste view status from clipboard.
+
+-- General control --
+Q, Esc       : Exit window.
+H            : Print help message.
+P, PrtScn    : Take a screen capture.
+D            : Take a depth capture.
+O            : Take a capture of current rendering settings.
+    ''')
+
     # Obtain filename from command line input
     # Example command: python Rorschach/visualization/MeshViewer.py --mesh_path ./data/Spoon/D00014.obj 
     args = parser.parse_args()
@@ -90,3 +145,12 @@ if __name__ == "__main__":
 
     # Visualize the mesh either with or without its convex hull, and with or without 3D axes
     visualize(mesh_path, method=method)
+
+    # categories = ['Monoplane', 'Vase', 'PlantIndoors', 'Motorcycle', 'Bottle', 'Fish', 'Car', 'DeskLamp', 'Rocket', 'Humanoid']
+    # all_mesh_paths = []
+    # for cat in categories:
+    #     meshes = os.listdir(f'./data_normalized/{cat}')
+    #     mesh_paths = [f'./data_normalized/{cat}/{mesh}' for mesh in meshes[:8]]
+    #     all_mesh_paths.append(mesh_paths)
+
+    # visualize_multiple(all_mesh_paths, method=method)
