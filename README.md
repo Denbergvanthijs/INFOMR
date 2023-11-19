@@ -37,6 +37,14 @@ After running any of the above commands, the resulting window should look simila
 2. Run `python ./Rorschach/preprocessing/preprocess.py` to normalize the meshes.
 3. Run `python ./Rorschach/visualization/visualize_data.py` to generate the relevant histograms and boxplots to visualize the resampling and normalisation steps. This will also print relevant statistics of the original, resampled and normalized datasets.
 
+### Querying front end
+
+To start the querying front end, run the following command:
+
+- `python -m streamlit run ./Rorschach/querying/frontend.py`
+
+This automatically opens the web page <http://localhost:8501/>.
+
 ### Complete pipeline
 
 Run the following PowerShell script to run the complete pipeline:
