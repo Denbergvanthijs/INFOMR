@@ -1,9 +1,7 @@
-import os
 import argparse
-import open3d as o3d
-import numpy as np
-from pymeshlab import MeshSet
 
+import open3d as o3d
+from pymeshlab import MeshSet
 
 parser = argparse.ArgumentParser(description="Visualize a given mesh.")
 parser.add_argument("--mesh_path", type=str, dest="mesh_path",
@@ -55,12 +53,12 @@ def visualize(mesh_path: str, width: int = 1280, height: int = 720, method: str 
     mesh = o3d.io.read_triangle_mesh(args.mesh_path)
     mesh.compute_vertex_normals()
 
-    window_name = f"Rorschach - Viewing Tool"
+    window_name = "Rorschach - Viewing Tool"
 
     # Draw cartesian frame of reference
     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    mesh_frame.translate([0,0,0])
-    
+    mesh_frame.translate([0, 0, 0])
+
     # Visualize mesh and its convex hull
     if method == 'convex_hull':
         hull_path = compute_convex_hull(mesh_path)
@@ -90,17 +88,18 @@ def visualize_multiple(all_mesh_paths: list, width: int = 1280, height: int = 72
             mesh = o3d.io.read_triangle_mesh(path)
             mesh.compute_vertex_normals()
 
-            mesh.translate([0,j,i])
+            mesh.translate([0, j, i])
             meshes.append(mesh)
             i += 1.5
+
         i = 0
         j += 1.5
 
-    window_name = f"Rorschach - Viewing Tool"
+    window_name = "Rorschach - Viewing Tool"
 
     if method == 'axes':
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2)
-        mesh_frame.translate([0,0,-3.5])
+        mesh_frame.translate([0, 0, -3.5])
         meshes.append(mesh_frame)
 
     o3d.visualization.draw_geometries(meshes, width=width, height=height, window_name=window_name)
@@ -133,7 +132,7 @@ O            : Take a capture of current rendering settings.
     ''')
 
     # Obtain filename from command line input
-    # Example command: python Rorschach/visualization/MeshViewer.py --mesh_path ./data/Spoon/D00014.obj 
+    # Example command: python Rorschach/visualization/MeshViewer.py --mesh_path ./data/Spoon/D00014.obj
     args = parser.parse_args()
     mesh_path = args.mesh_path
     method = args.method
